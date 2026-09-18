@@ -1,5 +1,3 @@
--- Nexus Tactical Launcher (Clean ASCII Version)
--- Injects Block Strike & Sniper Arena from GitHub
 print("[NEXUS] Booting Launcher...")
 pcall(function()
 game:GetService("StarterGui"):SetCore("SendNotification", {
