@@ -303,17 +303,18 @@ local success, err = pcall(function()
         SpeedEnabled = false,
         SpeedValue = 110,
         EspEnabled = false,
-        EspDistance = 1500,
+        EspDistance = 2500,
         AllowedEggTypes = {},
         AutoSteal = false
     }
-    createToggle(mainPage, "PHYSICS SPEED (SAFE)", function(state)
+    createToggle(mainPage, "SPEED BYPASS (NO RUBBERBAND)", function(state)
         Config.SpeedEnabled = state
     end)
     createSlider(mainPage, "SPEED MULTIPLIER", 16, 1000, 110, function(val)
         Config.SpeedValue = val
     end)
-    RunService.Stepped:Connect(function()
+    
+    RunService.RenderStepped:Connect(function(dt)
         if Config.SpeedEnabled then
             pcall(function()
                 local char = LocalPlayer.Character
@@ -322,20 +323,19 @@ local success, err = pcall(function()
                     local root = char:FindFirstChild("HumanoidRootPart")
                     if hum and root and hum.MoveDirection.Magnitude > 0 then
                         hum.WalkSpeed = 16 
-                        root.AssemblyLinearVelocity = Vector3.new(
-                            hum.MoveDirection.X * Config.SpeedValue,
-                            root.AssemblyLinearVelocity.Y,
-                            hum.MoveDirection.Z * Config.SpeedValue
-                        )
+                        local speedOffset = Config.SpeedValue * dt
+                        local moveVector = hum.MoveDirection * speedOffset
+                        root.CFrame = root.CFrame + Vector3.new(moveVector.X, 0, moveVector.Z)
                     end
                 end
             end)
         end
     end)
+    
     createToggle(espPage, "EGG ESP (WH)", function(state)
         Config.EspEnabled = state
     end)
-    createSlider(espPage, "ESP DISTANCE", 50, 3000, 1500, function(val)
+    createSlider(espPage, "ESP DISTANCE", 50, 5000, 2500, function(val)
         Config.EspDistance = val
     end)
     local EggTypesListLabel = Instance.new("TextLabel", espPage)
@@ -447,11 +447,13 @@ local success, err = pcall(function()
             end)
         end
     end)
-    createToggle(farmPage, "AUTO STEAL AURA", function(state)
+    
+    createToggle(farmPage, "HIGH-SPEED AUTO STEAL AURA", function(state)
         Config.AutoSteal = state
     end)
+    
     task.spawn(function()
-        while task.wait(0.1) do
+        while task.wait(0.05) do
             if Config.AutoSteal then
                 pcall(function()
                     local char = LocalPlayer.Character
@@ -460,14 +462,14 @@ local success, err = pcall(function()
                         for _, obj in ipairs(workspace:GetDescendants()) do
                             if isRealEgg(obj) then
                                 local targetPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                                if targetPart and (root.Position - targetPart.Position).Magnitude <= 35 then
+                                if targetPart and (root.Position - targetPart.Position).Magnitude <= 80 then
                                     for _, v in ipairs(obj:GetDescendants()) do
                                         pcall(function()
                                             if v:IsA("ProximityPrompt") then
                                                 fireproximityprompt(v, 1, true)
                                             elseif v:IsA("ClickDetector") then
                                                 fireclickdetector(v)
-                                            elseif v:IsA("BasePart") then
+                                            elseif v:IsA("BasePart") and v:FindFirstChildWhichIsA("TouchTransmitter") then
                                                 if typeof(firetouchinterest) == "function" then
                                                     firetouchinterest(root, v, 0)
                                                     firetouchinterest(root, v, 1)
@@ -483,6 +485,7 @@ local success, err = pcall(function()
             end
         end
     end)
+    
     local BottomBar = Instance.new("Frame", MainFrame)
     BottomBar.Size = UDim2.new(1, -20, 0, 54)
     BottomBar.Position = UDim2.new(0, 10, 1, -60)
