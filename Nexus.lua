@@ -1,9 +1,3 @@
---[[
-NEXUS TACTICAL HUB - DUAL LAUNCHER
-Optimized for Delta Android & PC
-Clean ASCII Code / In-Memory RAM Execution
-Includes Bottom-Left Player Profile & Full Stats Bar
-]]
 ​print("[NEXUS] Initializing Tactical Hub...")
 ​-- System notification on start
 pcall(function()
