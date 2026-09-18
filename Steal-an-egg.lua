@@ -1,4 +1,3 @@
--- STREAMING_CHUNK: Безопасная инициализация
 print("[STEAL EGG PRO] === ЗАПУСК СКРИПТА НАЧАТ ===")
 ​local success, err = pcall(function()
 local Players = game:GetService("Players")
@@ -16,8 +15,7 @@ end
 warn("[STEAL EGG PRO] ОШИБКА: Игрок не найден!")
 return
 end
-​-- Самый надежный поиск GUI для мобилок
-local function getSafeGui()
+​local function getSafeGui()
 local ok, cg = pcall(function() return CoreGui end)
 if ok and cg then return cg end
 local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
@@ -34,8 +32,7 @@ if GuiParent:FindFirstChild("StealAnEggProGUI") then
 GuiParent.StealAnEggProGUI:Destroy()
 end
 end)
-​-- STREAMING_CHUNK: Настройка UI темы
-local Colors = {
+​local Colors = {
 Bg         = Color3.fromRGB(12, 14, 20),
 HeaderBg   = Color3.fromRGB(17, 20, 30),
 CardBg     = Color3.fromRGB(20, 24, 38),
@@ -70,8 +67,7 @@ props
 tw:Play()
 return tw
 end
-​-- STREAMING_CHUNK: Главное окно и плавающая кнопка
-local ScreenGui = Instance.new("ScreenGui")
+​local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "StealAnEggProGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
@@ -120,8 +116,7 @@ MainFrame.Active = true
 MainFrame.ClipsDescendants = true
 addCorner(MainFrame, 16)
 addStroke(MainFrame, Colors.Accent, 1.5)
-​-- Перетаскивание
-local dragging, dragInput, dragStart, startPos
+​local dragging, dragInput, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 dragging = true
@@ -180,8 +175,7 @@ end
 end
 ​CloseBtn.MouseButton1Click:Connect(function() toggleMenu(false) end)
 PillBtn.MouseButton1Click:Connect(function() toggleMenu(true) end)
-​-- STREAMING_CHUNK: Вкладки и UI компоненты
-local TabBar = Instance.new("Frame", MainFrame)
+​local TabBar = Instance.new("Frame", MainFrame)
 TabBar.Size = UDim2.new(1, -20, 0, 32)
 TabBar.Position = UDim2.fromOffset(10, 50)
 TabBar.BackgroundTransparency = 1
@@ -322,8 +316,7 @@ update(input)
 end
 end)
 end
-​-- STREAMING_CHUNK: Физический обход скорости (BodyVelocity)
-local Config = {
+​local Config = {
 SpeedEnabled = false,
 SpeedValue = 110,
 EspEnabled = false,
@@ -345,20 +338,16 @@ local char = LocalPlayer.Character
 if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
 local hum = char.Humanoid
 local root = char.HumanoidRootPart
-​-- Маскируемся под обычную скорость
-hum.WalkSpeed = 16
+​hum.WalkSpeed = 16
 ​if hum.MoveDirection.Magnitude > 0 then
 if not currentBodyVel or not currentBodyVel.Parent then
 if currentBodyVel then currentBodyVel:Destroy() end
 currentBodyVel = Instance.new("BodyVelocity")
--- Убираем влияние гравитации по осям X и Z
 currentBodyVel.MaxForce = Vector3.new(100000, 0, 100000)
 currentBodyVel.Parent = root
 end
--- Толкаем физикой со скоростью слайдера
 currentBodyVel.Velocity = hum.MoveDirection * Config.SpeedValue
 else
--- Игрок отпустил стик - тормозим
 if currentBodyVel then
 currentBodyVel:Destroy()
 currentBodyVel = nil
@@ -373,8 +362,7 @@ currentBodyVel = nil
 end
 end
 end)
-​-- STREAMING_CHUNK: ESP система с кнопками для яиц
-createToggle(espPage, "EGG ESP (WH)", function(state)
+​createToggle(espPage, "EGG ESP (WH)", function(state)
 Config.EspEnabled = state
 end)
 ​createSlider(espPage, "ESP DISTANCE (STUD)", 50, 2000, 500, function(val)
@@ -399,7 +387,7 @@ end
 if createdEggButtons[eggName] then return end
 createdEggButtons[eggName] = true
 if Config.AllowedEggTypes[eggName] == nil then
-Config.AllowedEggTypes[eggName] = true -- Включено по умолчанию
+Config.AllowedEggTypes[eggName] = true
 end
 ​local btn = Instance.new("TextButton", espPage)
 btn.Size = UDim2.new(1, -6, 0, 34)
@@ -425,8 +413,7 @@ btn.Text = "EGG: " .. eggName .. " [OFF]"
 end
 end)
 end
-​-- Сканируем яйца для меню
-task.spawn(function()
+​task.spawn(function()
 while task.wait(2) do
 pcall(function()
 for _, obj in ipairs(workspace:GetDescendants()) do
@@ -437,8 +424,7 @@ end
 end)
 end
 end)
-​-- Рисуем ESP
-task.spawn(function()
+​task.spawn(function()
 while task.wait(0.5) do
 pcall(function()
 local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -449,7 +435,6 @@ local targetPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWh
 local isAllowed = Config.AllowedEggTypes[obj.Name] ~= false
 local dist = rootPart and (rootPart.Position - targetPart.Position).Magnitude or 0
 ​if Config.EspEnabled and isAllowed and dist <= Config.EspDistance then
--- Рисуем подсветку
 if not targetPart:FindFirstChild("EggHighlight") then
 local hl = Instance.new("Highlight")
 hl.Name = "EggHighlight"
@@ -458,7 +443,6 @@ hl.OutlineColor = Colors.White
 hl.FillTransparency = 0.5
 hl.Parent = targetPart
 end
--- Рисуем текст с именем и метрами
 if not targetPart:FindFirstChild("EggTextGui") then
 local bg = Instance.new("BillboardGui", targetPart)
 bg.Name = "EggTextGui"
@@ -479,7 +463,6 @@ if lbl then
 lbl.Text = string.format("%s\n[%dm]", obj.Name, math.floor(dist))
 end
 else
--- Удаляем ESP
 if targetPart:FindFirstChild("EggHighlight") then targetPart.EggHighlight:Destroy() end
 if targetPart:FindFirstChild("EggTextGui") then targetPart.EggTextGui:Destroy() end
 end
@@ -489,8 +472,7 @@ end
 end)
 end
 end)
-​-- STREAMING_CHUNK: Система Авто-Кражи
-createToggle(farmPage, "AUTO STEAL EGGS", function(state)
+​createToggle(farmPage, "AUTO STEAL EGGS", function(state)
 Config.AutoSteal = state
 end)
 ​task.spawn(function()
@@ -503,13 +485,11 @@ for _, obj in ipairs(workspace:GetDescendants()) do
 if isRealEgg(obj) then
 local targetPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
 if targetPart and (root.Position - targetPart.Position).Magnitude < 45 then
-​-- Поиск ProximityPrompt внутри яйца
 for _, prompt in ipairs(obj:GetDescendants()) do
 if prompt:IsA("ProximityPrompt") then
 fireproximityprompt(prompt)
 end
 end
-​-- Если работает через касание (TouchInterest)
 if typeof(firetouchinterest) == "function" then
 firetouchinterest(root, targetPart, 0)
 task.wait(0.01)
@@ -523,8 +503,7 @@ end)
 end
 end
 end)
-​-- STREAMING_CHUNK: Нижняя панель статистики и профиля
-local BottomBar = Instance.new("Frame", MainFrame)
+​local BottomBar = Instance.new("Frame", MainFrame)
 BottomBar.Size = UDim2.new(1, -20, 0, 54)
 BottomBar.Position = UDim2.new(0, 10, 1, -60)
 BottomBar.BackgroundColor3 = Colors.HeaderBg
