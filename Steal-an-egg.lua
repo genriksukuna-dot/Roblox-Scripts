@@ -1,5 +1,3 @@
-print("[STEAL EGG PRO] Loading Script...")
-
 local success, err = pcall(function()
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
@@ -9,18 +7,15 @@ local success, err = pcall(function()
     
     local LocalPlayer = Players.LocalPlayer
     if not LocalPlayer then
-        local t = tick()
-        repeat task.wait(0.1) LocalPlayer = Players.LocalPlayer until LocalPlayer or (tick() - t > 3)
+        local t = os.clock()
+        repeat task.wait(0.1) LocalPlayer = Players.LocalPlayer until LocalPlayer or (os.clock() - t > 3)
     end
-    
     if not LocalPlayer then return end
 
     local function getSafeGui()
         local ok, cg = pcall(function() return game:GetService("CoreGui") end)
         if ok and cg then return cg end
-        local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-        if pgui then return pgui end
-        return LocalPlayer:WaitForChild("PlayerGui", 3)
+        return LocalPlayer:WaitForChild("PlayerGui", 3) or LocalPlayer:FindFirstChildOfClass("PlayerGui")
     end
 
     local GuiParent = getSafeGui()
@@ -358,46 +353,37 @@ local success, err = pcall(function()
         AutoSteal = false
     }
 
-    createToggle(mainPage, "PHYSICS SPEED (ANTI-RUBBERBAND)", function(state)
+    createToggle(mainPage, "SAFE SPEED (NO KILL/RUBBERBAND)", function(state)
         Config.SpeedEnabled = state
     end)
 
-    createSlider(mainPage, "WALK SPEED MAX", 16, 110, 110, function(val)
+    createSlider(mainPage, "SPEED MULTIPLIER", 16, 110, 110, function(val)
         Config.SpeedValue = val
     end)
 
-    local currentBodyVel = nil
-
-    RunService.Heartbeat:Connect(function()
+    -- Р‘Р•Р—РћРџРђРЎРќР«Р™ Р¤РР—РР§Р•РЎРљРР™ РЎРџРР”РҐРђРљ (РќРµ СѓР±РёРІР°РµС‚ Рё РЅРµ РїСЂРѕРІР°Р»РёРІР°РµС‚СЃСЏ РїРѕРґ С‚РµРєСЃС‚СѓСЂС‹)
+    RunService.Stepped:Connect(function()
         if Config.SpeedEnabled then
             pcall(function()
                 local char = LocalPlayer.Character
-                if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
-                    local hum = char.Humanoid
-                    local root = char.HumanoidRootPart
-                    hum.WalkSpeed = 16 
+                if char then
+                    local hum = char:FindFirstChild("Humanoid")
+                    local root = char:FindFirstChild("HumanoidRootPart")
                     
-                    if hum.MoveDirection.Magnitude > 0 then
-                        if not currentBodyVel or not currentBodyVel.Parent then
-                            if currentBodyVel then currentBodyVel:Destroy() end
-                            currentBodyVel = Instance.new("BodyVelocity")
-                            currentBodyVel.MaxForce = Vector3.new(100000, 0, 100000)
-                            currentBodyVel.Parent = root
-                        end
-                        currentBodyVel.Velocity = hum.MoveDirection * Config.SpeedValue
-                    else
-                        if currentBodyVel then
-                            currentBodyVel:Destroy()
-                            currentBodyVel = nil
-                        end
+                    if hum and root and hum.MoveDirection.Magnitude > 0 then
+                        -- РћСЃС‚Р°РІР»СЏРµРј СЃРєРѕСЂРѕСЃС‚СЊ 16 РґР»СЏ СЃРµСЂРІРµСЂР°
+                        hum.WalkSpeed = 16 
+                        
+                        -- РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј С„РёР·РёС‡РµСЃРєСѓСЋ СЃРєРѕСЂРѕСЃС‚СЊ (Velocity)
+                        -- Y РѕСЃС‚Р°РІР»СЏРµРј РѕСЂРёРіРёРЅР°Р»СЊРЅС‹Рј, С‡С‚РѕР±С‹ РіСЂР°РІРёС‚Р°С†РёСЏ СЂР°Р±РѕС‚Р°Р»Р° Рё РЅРµ Р±С‹Р»Рѕ Р»РѕР¶РЅС‹С… Р°РЅС‚РёС‡РёС‚РѕРІ
+                        root.AssemblyLinearVelocity = Vector3.new(
+                            hum.MoveDirection.X * Config.SpeedValue,
+                            root.AssemblyLinearVelocity.Y,
+                            hum.MoveDirection.Z * Config.SpeedValue
+                        )
                     end
                 end
             end)
-        else
-            if currentBodyVel then
-                currentBodyVel:Destroy()
-                currentBodyVel = nil
-            end
         end
     end)
 
@@ -405,7 +391,7 @@ local success, err = pcall(function()
         Config.EspEnabled = state
     end)
 
-    createSlider(espPage, "ESP DISTANCE (STUD)", 50, 2000, 500, function(val)
+    createSlider(espPage, "ESP DISTANCE", 50, 2000, 500, function(val)
         Config.EspDistance = val
     end)
 
@@ -413,7 +399,7 @@ local success, err = pcall(function()
     EggTypesListLabel.Size = UDim2.new(1, -6, 0, 24)
     EggTypesListLabel.BackgroundTransparency = 1
     EggTypesListLabel.Font = Enum.Font.GothamBold
-    EggTypesListLabel.Text = "FOUND EGG TYPES (CLICK TO TOGGLE):"
+    EggTypesListLabel.Text = "FOUND EGGS (CLICK TO TOGGLE):"
     EggTypesListLabel.TextSize = 10
     EggTypesListLabel.TextColor3 = Colors.Accent
     EggTypesListLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -427,7 +413,12 @@ local success, err = pcall(function()
         return false
     end
 
-    local function registerEggType(eggName)
+    local function cleanName(name)
+        return name:gsub("Meshes/", ""):gsub("Steal an Egg ", "")
+    end
+
+    local function registerEggType(rawName)
+        local eggName = cleanName(rawName)
         if createdEggButtons[eggName] then return end
         createdEggButtons[eggName] = true
         if Config.AllowedEggTypes[eggName] == nil then
@@ -479,9 +470,9 @@ local success, err = pcall(function()
                 for _, obj in ipairs(workspace:GetDescendants()) do
                     if isRealEgg(obj) and (obj:IsA("BasePart") or obj:IsA("Model")) then
                         local targetPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                        
                         if targetPart then
-                            local isAllowed = Config.AllowedEggTypes[obj.Name] ~= false
+                            local cName = cleanName(obj.Name)
+                            local isAllowed = Config.AllowedEggTypes[cName] ~= false
                             local dist = rootPart and (rootPart.Position - targetPart.Position).Magnitude or 0
 
                             if Config.EspEnabled and isAllowed and dist <= Config.EspDistance then
@@ -510,7 +501,7 @@ local success, err = pcall(function()
                                 end
                                 local lbl = targetPart:FindFirstChild("EggTextGui") and targetPart.EggTextGui:FindFirstChild("Title")
                                 if lbl then
-                                    lbl.Text = string.format("%s\n[%dm]", obj.Name, math.floor(dist))
+                                    lbl.Text = string.format("%s\n[%dm]", cName, math.floor(dist))
                                 end
                             else
                                 if targetPart:FindFirstChild("EggHighlight") then targetPart.EggHighlight:Destroy() end
@@ -523,12 +514,13 @@ local success, err = pcall(function()
         end
     end)
 
-    createToggle(farmPage, "AUTO STEAL EGGS", function(state)
+    createToggle(farmPage, "AUTO STEAL AURA (WALK NEAR EGG)", function(state)
         Config.AutoSteal = state
     end)
 
+    -- РРЎРџР РђР’Р›Р•РќРќР«Р™ РђР’РўРћ-РЎР‘РћР  (РћР±С…РѕРґРёС‚ РїСЂРѕРІРµСЂРєРё РґРёСЃС‚Р°РЅС†РёРё СЃРµСЂРІРµСЂР°)
     task.spawn(function()
-        while task.wait(0.2) do
+        while task.wait(0.1) do
             if Config.AutoSteal then
                 pcall(function()
                     local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -536,16 +528,26 @@ local success, err = pcall(function()
                         for _, obj in ipairs(workspace:GetDescendants()) do
                             if isRealEgg(obj) then
                                 local targetPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                                if targetPart and (root.Position - targetPart.Position).Magnitude < 45 then
-                                    for _, prompt in ipairs(obj:GetDescendants()) do
-                                        if prompt:IsA("ProximityPrompt") then
-                                            fireproximityprompt(prompt)
-                                        end
+                                
+                                -- Р Р°РґРёСѓСЃ 15 СЃС‚СѓРґРѕРІ (С‡С‚РѕР±С‹ СЃРµСЂРІРµСЂ РїРѕРІРµСЂРёР», С‡С‚Рѕ РјС‹ СЂСЏРґРѕРј Рё РЅРµ РѕС‚РјРµРЅРёР» СЃР±РѕСЂ)
+                                if targetPart and (root.Position - targetPart.Position).Magnitude <= 15 then
+                                    for _, v in ipairs(obj:GetDescendants()) do
+                                        pcall(function()
+                                            if v:IsA("ProximityPrompt") then
+                                                fireproximityprompt(v, 1, true)
+                                            elseif v:IsA("ClickDetector") then
+                                                fireclickdetector(v)
+                                            elseif v:IsA("RemoteEvent") then
+                                                v:FireServer()
+                                            end
+                                        end)
                                     end
+                                    
                                     if typeof(firetouchinterest) == "function" then
-                                        firetouchinterest(root, targetPart, 0)
-                                        task.wait(0.01)
-                                        firetouchinterest(root, targetPart, 1)
+                                        pcall(function()
+                                            firetouchinterest(root, targetPart, 0)
+                                            firetouchinterest(root, targetPart, 1)
+                                        end)
                                     end
                                 end
                             end
@@ -647,10 +649,7 @@ local success, err = pcall(function()
             lastTick = now
         end
     end)
-
-    print("[STEAL EGG PRO] Interface Loaded")
 end)
-
 if not success then
-    warn("[STEAL EGG PRO ERROR]: " .. tostring(err))
+    warn("[STEAL EGG ERROR]: " .. tostring(err))
 end
