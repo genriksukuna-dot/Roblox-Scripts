@@ -1,14 +1,12 @@
-​print("[NEXUS] Initializing Tactical Hub...")
-​-- System notification on start
-pcall(function()
+print("[NEXUS] Starting Tactical Hub...")
+​pcall(function()
 game:GetService("StarterGui"):SetCore("SendNotification", {
 Title = "NEXUS HUB",
-Text = "Запуск лаунчера...",
+Text = "Starting launcher...",
 Duration = 2
 })
 end)
-​-- Cleanup previous copies
-if _G.NexusHubMasterCleanup then
+​if _G.NexusHubMasterCleanup then
 pcall(_G.NexusHubMasterCleanup)
 end
 ​local Cleanups = {}
@@ -31,18 +29,15 @@ local RunService = game:GetService("RunService")
 local StatsService = game:GetService("Stats")
 ​local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
 local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camera")
-​-- Links to target scripts on GitHub
-local GITHUB_SCRIPTS = {
+​local GITHUB_SCRIPTS = {
 BlockStrike = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Block-Strike.lua",
 SniperArena = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Sniper-Arena.lua"
 }
-​-- Asset IDs
-local RAW_ASSET_IDS = {
+​local RAW_ASSET_IDS = {
 BlockStrike = "92306455384915",
 SniperArena = "124037211421900"
 }
-​-- Tactical Colors
-local Colors = {
+​local Colors = {
 Bg           = Color3.fromRGB(12, 13, 20),
 HeaderBg     = Color3.fromRGB(18, 19, 30),
 CardBg       = Color3.fromRGB(20, 22, 35),
@@ -56,8 +51,7 @@ BS_Secondary = Color3.fromRGB(0, 255, 170),
 SA_Primary   = Color3.fromRGB(245, 60, 255),
 SA_Secondary = Color3.fromRGB(130, 80, 255)
 }
-​-- Safe container search (PlayerGui priority for Android)
-local function getSafeGui()
+​local function getSafeGui()
 local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 4)
 if pgui then return pgui end
 if typeof(gethui) == "function" then
@@ -68,8 +62,7 @@ return LocalPlayer:FindFirstChild("PlayerGui")
 end
 ​local GuiParent = getSafeGui()
 if not GuiParent then return end
-​-- Helper functions
-local function tween(inst, time, props, style, dir)
+​local function tween(inst, time, props, style, dir)
 if not inst then return end
 local tw = TweenService:Create(
 inst,
@@ -102,12 +95,9 @@ g.Rotation = rot or 0
 g.Parent = parent
 return g
 end
-​-- Double-layer Image Loader (rbxthumb + Decal parser)
-local function applyDecalImage(imageLabel, rawId)
+​local function applyDecalImage(imageLabel, rawId)
 local clean = tostring(rawId):gsub("%D", "")
-​-- Method 1: Instant rbxthumb loader
 imageLabel.Image = "rbxthumb://type=Asset&id=" .. clean .. "&w=420&h=420"
-​-- Method 2: In-memory Decal to Texture extractor
 task.spawn(function()
 pcall(function()
 local objs = game:GetObjects("rbxassetid://" .. clean)
@@ -121,8 +111,7 @@ end
 end)
 end)
 end
-​-- Root ScreenGui
-local RootGui = Instance.new("ScreenGui")
+​local RootGui = Instance.new("ScreenGui")
 RootGui.Name = "Nexus_Tactical_Hub"
 RootGui.ResetOnSpawn = false
 RootGui.IgnoreGuiInset = true
@@ -137,7 +126,7 @@ DarkBackdrop.BorderSizePixel = 0
 DarkBackdrop.ZIndex = 1
 ​local vp = Camera and Camera.ViewportSize or Vector2.new(800, 450)
 local winW = math.clamp(math.floor(vp.X * 0.90), 500, 610)
-local winH = math.clamp(math.floor(vp.Y * 0.88), 330, 375)
+local winH = math.clamp(math.floor(vp.Y * 0.90), 330, 385)
 ​local MainPanel = Instance.new("Frame", RootGui)
 MainPanel.Name = "MainPanel"
 MainPanel.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -155,8 +144,7 @@ TopNeon.BorderSizePixel = 0
 TopNeon.BackgroundColor3 = Colors.BS_Primary
 TopNeon.ZIndex = 10
 addGradient(TopNeon, Colors.BS_Primary, Colors.SA_Primary, 0)
-​-- Floating Mobile Mini Pill
-local MiniPill = Instance.new("Frame", RootGui)
+​local MiniPill = Instance.new("Frame", RootGui)
 MiniPill.Name = "MiniPill"
 MiniPill.Size = UDim2.fromOffset(125, 32)
 MiniPill.Position = UDim2.new(0.5, -62, 0, 16)
@@ -205,8 +193,7 @@ end)
 end
 end
 ​PillBtn.Activated:Connect(function() toggleHub(true) end)
-​-- Header Area
-local Header = Instance.new("Frame", MainPanel)
+​local Header = Instance.new("Frame", MainPanel)
 Header.Size = UDim2.new(1, 0, 0, 42)
 Header.BackgroundColor3 = Colors.HeaderBg
 Header.BorderSizePixel = 0
@@ -259,9 +246,8 @@ CloseBtn.TextColor3 = Colors.TextMuted
 CloseBtn.ZIndex = 12
 addCorner(CloseBtn, 6)
 ​CloseBtn.Activated:Connect(function() toggleHub(false) end)
-​-- Cards Area (Middle)
-local CardsHolder = Instance.new("Frame", MainPanel)
-CardsHolder.Size = UDim2.new(1, -20, 1, -112)
+​local CardsHolder = Instance.new("Frame", MainPanel)
+CardsHolder.Size = UDim2.new(1, -20, 1, -114)
 CardsHolder.Position = UDim2.fromOffset(10, 46)
 CardsHolder.BackgroundTransparency = 1
 CardsHolder.ZIndex = 5
@@ -270,8 +256,7 @@ CardsLayout.FillDirection = Enum.FillDirection.Horizontal
 CardsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 CardsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 CardsLayout.Padding = UDim.new(0, 12)
-​-- Script Execution Logic
-local isInjecting = false
+​local isInjecting = false
 local function executeFromGitHub(url, title, accentColor)
 if isInjecting then return end
 isInjecting = true
@@ -279,7 +264,7 @@ isInjecting = true
 pcall(function()
 game:GetService("StarterGui"):SetCore("SendNotification", {
 Title = title,
-Text = "Загрузка скрипта с GitHub...",
+Text = "Downloading script from GitHub...",
 Duration = 3
 })
 end)
@@ -294,7 +279,6 @@ local success, rawScript = pcall(function()
 return game:HttpGet(url)
 end)
 ​if success and rawScript then
-rawScript = rawScript:gsub("\226\128\139", "")
 local fn, err = loadstring(rawScript)
 if fn then
 fn()
@@ -307,10 +291,9 @@ end
 end)
 end)
 end
-​-- Game Card Builder
-local function buildCard(cfg)
+​local function buildCard(cfg)
 local cardW = math.floor((winW - 36) / 2)
-local cardH = winH - 116
+local cardH = winH - 118
 ​local card = Instance.new("Frame", CardsHolder)
 card.Size = UDim2.fromOffset(cardW, cardH)
 card.BackgroundColor3 = Colors.CardBg
@@ -332,8 +315,7 @@ ThumbImg.BackgroundTransparency = 1
 ThumbImg.ScaleType = Enum.ScaleType.Crop
 ThumbImg.ZIndex = 7
 applyDecalImage(ThumbImg, cfg.RawAssetId)
-​-- Soft bottom text shadow
-local BottomShadow = Instance.new("Frame", Banner)
+​local BottomShadow = Instance.new("Frame", Banner)
 BottomShadow.Size = UDim2.new(1, 0, 0.45, 0)
 BottomShadow.Position = UDim2.new(0, 0, 0.55, 0)
 BottomShadow.BackgroundColor3 = Color3.fromRGB(8, 9, 14)
@@ -399,8 +381,7 @@ ContentProvider:PreloadAsync({ThumbImg})
 end)
 end)
 end
-​-- Create Cards
-buildCard({
+​buildCard({
 Title = "BLOCK STRIKE",
 RawAssetId = RAW_ASSET_IDS.BlockStrike,
 PrimaryColor = Colors.BS_Primary,
@@ -416,10 +397,7 @@ SecondaryColor = Colors.SA_Secondary,
 Description = "Smooth Camera Lock, Visual ESP and Config Manager.",
 ScriptUrl = GITHUB_SCRIPTS.SniperArena
 })
-​-- ====================================================================
--- BOTTOM PROFILE & LIVE STATS BAR (СЛЕВА СНИЗУ)
--- ====================================================================
-local BottomBar = Instance.new("Frame", MainPanel)
+​local BottomBar = Instance.new("Frame", MainPanel)
 BottomBar.Name = "BottomProfileBar"
 BottomBar.Size = UDim2.new(1, -20, 0, 52)
 BottomBar.Position = UDim2.new(0, 10, 1, -58)
@@ -428,15 +406,14 @@ BottomBar.BorderSizePixel = 0
 BottomBar.ZIndex = 10
 addCorner(BottomBar, 10)
 addStroke(BottomBar, Colors.CardBorder, 1.1)
-​-- 1. Аватар игрока (Avatar Thumbnail)
-local AvatarHolder = Instance.new("Frame", BottomBar)
+​local AvatarHolder = Instance.new("Frame", BottomBar)
 AvatarHolder.Size = UDim2.fromOffset(38, 38)
 AvatarHolder.Position = UDim2.fromOffset(8, 7)
 AvatarHolder.BackgroundColor3 = Colors.CardBg
 AvatarHolder.BorderSizePixel = 0
 AvatarHolder.ZIndex = 11
 addCorner(AvatarHolder, 8)
-local avatarStroke = addStroke(AvatarHolder, Colors.BS_Primary, 1.1)
+addStroke(AvatarHolder, Colors.BS_Primary, 1.1)
 ​local AvatarImg = Instance.new("ImageLabel", AvatarHolder)
 AvatarImg.Size = UDim2.fromScale(1, 1)
 AvatarImg.BackgroundTransparency = 1
@@ -444,8 +421,7 @@ AvatarImg.ScaleType = Enum.ScaleType.Fit
 AvatarImg.ZIndex = 12
 addCorner(AvatarImg, 8)
 AvatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(LocalPlayer.UserId) .. "&w=150&h=150"
-​-- Онлайн индикатор (зеленый кругляш)
-local OnlineDot = Instance.new("Frame", AvatarHolder)
+​local OnlineDot = Instance.new("Frame", AvatarHolder)
 OnlineDot.Size = UDim2.fromOffset(8, 8)
 OnlineDot.Position = UDim2.new(1, -3, 1, -3)
 OnlineDot.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -454,14 +430,12 @@ OnlineDot.BorderSizePixel = 0
 OnlineDot.ZIndex = 14
 addCorner(OnlineDot, 99)
 addStroke(OnlineDot, Colors.HeaderBg, 1.5)
-​-- 2. Текстовая статистика игрока (User Full Stats)
-local StatsHolder = Instance.new("Frame", BottomBar)
+​local StatsHolder = Instance.new("Frame", BottomBar)
 StatsHolder.Size = UDim2.new(1, -190, 1, -8)
 StatsHolder.Position = UDim2.fromOffset(54, 4)
 StatsHolder.BackgroundTransparency = 1
 StatsHolder.ZIndex = 11
-​-- Имя и бейдж
-local NameRow = Instance.new("Frame", StatsHolder)
+​local NameRow = Instance.new("Frame", StatsHolder)
 NameRow.Size = UDim2.new(1, 0, 0, 16)
 NameRow.BackgroundTransparency = 1
 NameRow.ZIndex = 12
@@ -487,32 +461,29 @@ PremBadge.TextSize = 7.5
 PremBadge.TextColor3 = isPrem and Color3.fromRGB(15, 15, 15) or Colors.White
 PremBadge.ZIndex = 13
 addCorner(PremBadge, 4)
-​-- Ник и UserId
-local SubInfoLbl = Instance.new("TextLabel", StatsHolder)
+​local SubInfoLbl = Instance.new("TextLabel", StatsHolder)
 SubInfoLbl.Size = UDim2.new(1, 0, 0, 13)
 SubInfoLbl.Position = UDim2.fromOffset(0, 16)
 SubInfoLbl.BackgroundTransparency = 1
 SubInfoLbl.Font = Enum.Font.GothamBold
-SubInfoLbl.Text = "@" .. LocalPlayer.Name .. "  •  ID: " .. tostring(LocalPlayer.UserId)
+SubInfoLbl.Text = "@" .. LocalPlayer.Name .. " | ID: " .. tostring(LocalPlayer.UserId)
 SubInfoLbl.TextSize = 8
 SubInfoLbl.TextColor3 = Colors.TextMuted
 SubInfoLbl.TextXAlignment = Enum.TextXAlignment.Left
 SubInfoLbl.TextTruncate = Enum.TextTruncate.AtEnd
 SubInfoLbl.ZIndex = 12
-​-- Возраст аккаунта и дата
-local AgeLbl = Instance.new("TextLabel", StatsHolder)
+​local AgeLbl = Instance.new("TextLabel", StatsHolder)
 AgeLbl.Size = UDim2.new(1, 0, 0, 12)
 AgeLbl.Position = UDim2.fromOffset(0, 29)
 AgeLbl.BackgroundTransparency = 1
 AgeLbl.Font = Enum.Font.GothamMedium
-AgeLbl.Text = "Account Age: " .. tostring(LocalPlayer.AccountAge) .. " days  •  Status: Active"
+AgeLbl.Text = "Account Age: " .. tostring(LocalPlayer.AccountAge) .. " days | Status: Active"
 AgeLbl.TextSize = 7.5
 AgeLbl.TextColor3 = Colors.BS_Primary
 AgeLbl.TextXAlignment = Enum.TextXAlignment.Left
 AgeLbl.TextTruncate = Enum.TextTruncate.AtEnd
 AgeLbl.ZIndex = 12
-​-- 3. Правый блок живых метрик (FPS / Ping)
-local LiveMetrics = Instance.new("Frame", BottomBar)
+​local LiveMetrics = Instance.new("Frame", BottomBar)
 LiveMetrics.Size = UDim2.fromOffset(125, 40)
 LiveMetrics.Position = UDim2.new(1, -132, 0.5, -20)
 LiveMetrics.BackgroundTransparency = 1
@@ -542,8 +513,7 @@ PingBadge.TextColor3 = Colors.BS_Primary
 PingBadge.ZIndex = 12
 addCorner(PingBadge, 5)
 addStroke(PingBadge, Color3.fromRGB(40, 50, 70), 1)
-​-- Живое обновление счетчиков FPS и Ping
-local frameCount = 0
+​local frameCount = 0
 local lastSample = os.clock()
 ​table.insert(Cleanups, RunService.RenderStepped:Connect(function()
 frameCount = frameCount + 1
