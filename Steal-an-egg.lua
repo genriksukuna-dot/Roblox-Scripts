@@ -4,29 +4,24 @@ local success, err = pcall(function()
     local TweenService = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
     local StatsService = game:GetService("Stats")
-    
     local LocalPlayer = Players.LocalPlayer
     if not LocalPlayer then
         local t = os.clock()
         repeat task.wait(0.1) LocalPlayer = Players.LocalPlayer until LocalPlayer or (os.clock() - t > 3)
     end
     if not LocalPlayer then return end
-
     local function getSafeGui()
         local ok, cg = pcall(function() return game:GetService("CoreGui") end)
         if ok and cg then return cg end
         return LocalPlayer:WaitForChild("PlayerGui", 3) or LocalPlayer:FindFirstChildOfClass("PlayerGui")
     end
-
     local GuiParent = getSafeGui()
     if not GuiParent then return end
-
     pcall(function()
         if GuiParent:FindFirstChild("StealAnEggProGUI") then
             GuiParent.StealAnEggProGUI:Destroy()
         end
     end)
-
     local Colors = {
         Bg = Color3.fromRGB(12, 14, 20),
         HeaderBg = Color3.fromRGB(17, 20, 30),
@@ -38,38 +33,29 @@ local success, err = pcall(function()
         Muted = Color3.fromRGB(140, 150, 180),
         TabActive = Color3.fromRGB(0, 180, 220)
     }
-
     local function addCorner(parent, radius)
         local c = Instance.new("UICorner")
         c.CornerRadius = UDim.new(0, radius or 10)
         c.Parent = parent
     end
-
     local function addStroke(parent, color, thickness)
         local s = Instance.new("UIStroke")
         s.Color = color or Colors.Border
         s.Thickness = thickness or 1.2
         s.Parent = parent
     end
-
     local function tween(inst, time, props, style, dir)
         if not inst then return end
-        local tw = TweenService:Create(
-            inst,
-            TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Back, dir or Enum.EasingDirection.Out),
-            props
-        )
+        local tw = TweenService:Create(inst, TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Back, dir or Enum.EasingDirection.Out), props)
         tw:Play()
         return tw
     end
-
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "StealAnEggProGUI"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.IgnoreGuiInset = true
     ScreenGui.DisplayOrder = 99999
     ScreenGui.Parent = GuiParent
-
     local MiniPill = Instance.new("Frame", ScreenGui)
     MiniPill.Name = "MiniPill"
     MiniPill.Size = UDim2.fromOffset(115, 32)
@@ -80,7 +66,6 @@ local success, err = pcall(function()
     MiniPill.ZIndex = 100
     addCorner(MiniPill, 16)
     addStroke(MiniPill, Colors.Accent, 1.3)
-
     local PillDot = Instance.new("Frame", MiniPill)
     PillDot.Size = UDim2.fromOffset(7, 7)
     PillDot.Position = UDim2.fromOffset(10, 12)
@@ -88,7 +73,6 @@ local success, err = pcall(function()
     PillDot.BorderSizePixel = 0
     PillDot.ZIndex = 101
     addCorner(PillDot, 99)
-
     local PillLabel = Instance.new("TextLabel", MiniPill)
     PillLabel.Size = UDim2.new(1, -24, 1, 0)
     PillLabel.Position = UDim2.fromOffset(22, 0)
@@ -99,13 +83,11 @@ local success, err = pcall(function()
     PillLabel.TextColor3 = Colors.White
     PillLabel.TextXAlignment = Enum.TextXAlignment.Left
     PillLabel.ZIndex = 101
-
     local PillBtn = Instance.new("TextButton", MiniPill)
     PillBtn.Size = UDim2.fromScale(1, 1)
     PillBtn.BackgroundTransparency = 1
     PillBtn.Text = ""
     PillBtn.ZIndex = 105
-
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Name = "MainFrame"
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -117,7 +99,6 @@ local success, err = pcall(function()
     MainFrame.ClipsDescendants = true
     addCorner(MainFrame, 16)
     addStroke(MainFrame, Colors.Accent, 1.5)
-
     local dragging, dragInput, dragStart, startPos
     MainFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -137,12 +118,10 @@ local success, err = pcall(function()
             MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-
     local Header = Instance.new("Frame", MainFrame)
     Header.Size = UDim2.new(1, 0, 0, 44)
     Header.BackgroundColor3 = Colors.HeaderBg
     Header.BorderSizePixel = 0
-
     local Title = Instance.new("TextLabel", Header)
     Title.Size = UDim2.new(1, -50, 1, 0)
     Title.Position = UDim2.fromOffset(14, 0)
@@ -152,7 +131,6 @@ local success, err = pcall(function()
     Title.TextSize = 11.5
     Title.TextColor3 = Colors.White
     Title.TextXAlignment = Enum.TextXAlignment.Left
-
     local CloseBtn = Instance.new("TextButton", Header)
     CloseBtn.Size = UDim2.fromOffset(28, 28)
     CloseBtn.Position = UDim2.new(1, -36, 0.5, -14)
@@ -163,7 +141,6 @@ local success, err = pcall(function()
     CloseBtn.TextColor3 = Colors.Muted
     addCorner(CloseBtn, 8)
     addStroke(CloseBtn, Colors.Border, 1)
-
     local function toggleMenu(show)
         if show then
             MiniPill.Visible = false
@@ -179,55 +156,45 @@ local success, err = pcall(function()
             end)
         end
     end
-
     CloseBtn.MouseButton1Click:Connect(function() toggleMenu(false) end)
     PillBtn.MouseButton1Click:Connect(function() toggleMenu(true) end)
-
     local TabBar = Instance.new("Frame", MainFrame)
     TabBar.Size = UDim2.new(1, -20, 0, 32)
     TabBar.Position = UDim2.fromOffset(10, 50)
     TabBar.BackgroundTransparency = 1
-
     local TabListLayout = Instance.new("UIListLayout", TabBar)
     TabListLayout.FillDirection = Enum.FillDirection.Horizontal
     TabListLayout.Padding = UDim.new(0, 8)
-
     local PagesContainer = Instance.new("Frame", MainFrame)
     PagesContainer.Size = UDim2.new(1, -20, 1, -156)
     PagesContainer.Position = UDim2.fromOffset(10, 92)
     PagesContainer.BackgroundTransparency = 1
     PagesContainer.ClipsDescendants = true
-
     local pages = {}
     local function createPage(name)
         local page = Instance.new("ScrollingFrame", PagesContainer)
         page.Name = name .. "Page"
         page.Size = UDim2.fromScale(1, 1)
         page.BackgroundTransparency = 1
-        page.CanvasSize = UDim2.fromOffset(0, 700)
+        page.CanvasSize = UDim2.fromOffset(0, 800)
         page.ScrollBarThickness = 2
         page.ScrollBarImageColor3 = Colors.Accent
         page.Visible = false
-
         local layout = Instance.new("UIListLayout", page)
         layout.SortOrder = Enum.SortOrder.LayoutOrder
         layout.Padding = UDim.new(0, 10)
-
         pages[name] = page
         return page
     end
-
     local mainPage = createPage("Main")
     local espPage = createPage("ESP")
     local farmPage = createPage("Farm")
     mainPage.Visible = true
-
     local function switchTab(tabName)
         for name, page in pairs(pages) do
             page.Visible = (name == tabName)
         end
     end
-
     local function createTabButton(name, targetPage)
         local btn = Instance.new("TextButton", TabBar)
         btn.Size = UDim2.new(0.32, -4, 1, 0)
@@ -238,7 +205,6 @@ local success, err = pcall(function()
         btn.TextColor3 = Colors.Muted
         addCorner(btn, 8)
         addStroke(btn, Colors.Border, 1)
-
         btn.MouseButton1Click:Connect(function()
             for _, child in ipairs(TabBar:GetChildren()) do
                 if child:IsA("TextButton") then
@@ -252,13 +218,11 @@ local success, err = pcall(function()
         end)
         return btn
     end
-
     local btnMain = createTabButton("MAIN", "Main")
     btnMain.BackgroundColor3 = Colors.TabActive
     btnMain.TextColor3 = Colors.White
     createTabButton("ESP", "ESP")
     createTabButton("FARM", "Farm")
-
     local function createToggle(parent, name, callback)
         local btn = Instance.new("TextButton", parent)
         btn.Size = UDim2.new(1, -6, 0, 42)
@@ -269,7 +233,6 @@ local success, err = pcall(function()
         btn.TextColor3 = Colors.White
         addCorner(btn, 10)
         addStroke(btn, Colors.Border, 1.2)
-
         local active = false
         btn.MouseButton1Click:Connect(function()
             active = not active
@@ -286,14 +249,12 @@ local success, err = pcall(function()
         end)
         return btn
     end
-
     local function createSlider(parent, name, min, max, default, callback)
         local frame = Instance.new("Frame", parent)
         frame.Size = UDim2.new(1, -6, 0, 56)
         frame.BackgroundColor3 = Colors.CardBg
         addCorner(frame, 10)
         addStroke(frame, Colors.Border, 1.2)
-
         local label = Instance.new("TextLabel", frame)
         label.Size = UDim2.new(1, -16, 0, 22)
         label.Position = UDim2.fromOffset(10, 6)
@@ -303,25 +264,21 @@ local success, err = pcall(function()
         label.TextSize = 11
         label.TextColor3 = Colors.White
         label.TextXAlignment = Enum.TextXAlignment.Left
-
         local bar = Instance.new("Frame", frame)
         bar.Size = UDim2.new(1, -20, 0, 8)
         bar.Position = UDim2.new(0, 10, 0, 36)
         bar.BackgroundColor3 = Colors.Bg
         addCorner(bar, 4)
-
         local fill = Instance.new("Frame", bar)
         local startPos = (default - min) / (max - min)
         fill.Size = UDim2.new(startPos, 0, 1, 0)
         fill.BackgroundColor3 = Colors.Accent
         addCorner(fill, 4)
-
         local btn = Instance.new("TextButton", bar)
         btn.Size = UDim2.new(1, 24, 1, 16)
         btn.Position = UDim2.fromOffset(-12, -4)
         btn.BackgroundTransparency = 1
         btn.Text = ""
-
         local sliding = false
         local function update(input)
             local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
@@ -330,7 +287,6 @@ local success, err = pcall(function()
             label.Text = name .. ": " .. tostring(val)
             pcall(callback, val)
         end
-
         btn.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true end
         end)
@@ -343,25 +299,20 @@ local success, err = pcall(function()
             end
         end)
     end
-
     local Config = {
         SpeedEnabled = false,
         SpeedValue = 110,
         EspEnabled = false,
-        EspDistance = 500,
+        EspDistance = 1500,
         AllowedEggTypes = {},
         AutoSteal = false
     }
-
-    createToggle(mainPage, "SAFE SPEED (NO KILL/RUBBERBAND)", function(state)
+    createToggle(mainPage, "PHYSICS SPEED (SAFE)", function(state)
         Config.SpeedEnabled = state
     end)
-
-    createSlider(mainPage, "SPEED MULTIPLIER", 16, 110, 110, function(val)
+    createSlider(mainPage, "SPEED MULTIPLIER", 16, 1000, 110, function(val)
         Config.SpeedValue = val
     end)
-
-    -- Р‘Р•Р—РћРџРђРЎРќР«Р™ Р¤РР—РР§Р•РЎРљРР™ РЎРџРР”РҐРђРљ (РќРµ СѓР±РёРІР°РµС‚ Рё РЅРµ РїСЂРѕРІР°Р»РёРІР°РµС‚СЃСЏ РїРѕРґ С‚РµРєСЃС‚СѓСЂС‹)
     RunService.Stepped:Connect(function()
         if Config.SpeedEnabled then
             pcall(function()
@@ -369,13 +320,8 @@ local success, err = pcall(function()
                 if char then
                     local hum = char:FindFirstChild("Humanoid")
                     local root = char:FindFirstChild("HumanoidRootPart")
-                    
                     if hum and root and hum.MoveDirection.Magnitude > 0 then
-                        -- РћСЃС‚Р°РІР»СЏРµРј СЃРєРѕСЂРѕСЃС‚СЊ 16 РґР»СЏ СЃРµСЂРІРµСЂР°
                         hum.WalkSpeed = 16 
-                        
-                        -- РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј С„РёР·РёС‡РµСЃРєСѓСЋ СЃРєРѕСЂРѕСЃС‚СЊ (Velocity)
-                        -- Y РѕСЃС‚Р°РІР»СЏРµРј РѕСЂРёРіРёРЅР°Р»СЊРЅС‹Рј, С‡С‚РѕР±С‹ РіСЂР°РІРёС‚Р°С†РёСЏ СЂР°Р±РѕС‚Р°Р»Р° Рё РЅРµ Р±С‹Р»Рѕ Р»РѕР¶РЅС‹С… Р°РЅС‚РёС‡РёС‚РѕРІ
                         root.AssemblyLinearVelocity = Vector3.new(
                             hum.MoveDirection.X * Config.SpeedValue,
                             root.AssemblyLinearVelocity.Y,
@@ -386,15 +332,12 @@ local success, err = pcall(function()
             end)
         end
     end)
-
     createToggle(espPage, "EGG ESP (WH)", function(state)
         Config.EspEnabled = state
     end)
-
-    createSlider(espPage, "ESP DISTANCE", 50, 2000, 500, function(val)
+    createSlider(espPage, "ESP DISTANCE", 50, 3000, 1500, function(val)
         Config.EspDistance = val
     end)
-
     local EggTypesListLabel = Instance.new("TextLabel", espPage)
     EggTypesListLabel.Size = UDim2.new(1, -6, 0, 24)
     EggTypesListLabel.BackgroundTransparency = 1
@@ -403,20 +346,16 @@ local success, err = pcall(function()
     EggTypesListLabel.TextSize = 10
     EggTypesListLabel.TextColor3 = Colors.Accent
     EggTypesListLabel.TextXAlignment = Enum.TextXAlignment.Left
-
     local createdEggButtons = {}
-
     local function isRealEgg(obj)
         local name = obj.Name:lower()
-        if name:find("fuse") or name:find("machine") or name:find("cube") or name:find("mesh") or name:find("ui") or name:find("cylinder") then return false end
-        if name:find("eggspot") or name:find("eggpoint") or name:find("egg") then return true end
+        if name:find("fuse") or name:find("machine") or name:find("cube") or name:find("mesh") or name:find("ui") or name:find("cylinder") or name:find("bounds") then return false end
+        if name:find("egg") then return true end
         return false
     end
-
     local function cleanName(name)
         return name:gsub("Meshes/", ""):gsub("Steal an Egg ", "")
     end
-
     local function registerEggType(rawName)
         local eggName = cleanName(rawName)
         if createdEggButtons[eggName] then return end
@@ -424,7 +363,6 @@ local success, err = pcall(function()
         if Config.AllowedEggTypes[eggName] == nil then
             Config.AllowedEggTypes[eggName] = true
         end
-
         local btn = Instance.new("TextButton", espPage)
         btn.Size = UDim2.new(1, -6, 0, 34)
         btn.BackgroundColor3 = Colors.AccentSec
@@ -434,7 +372,6 @@ local success, err = pcall(function()
         btn.TextColor3 = Color3.fromRGB(10, 15, 20)
         addCorner(btn, 8)
         addStroke(btn, Colors.Border, 1)
-
         local active = true
         btn.MouseButton1Click:Connect(function()
             active = not active
@@ -450,7 +387,6 @@ local success, err = pcall(function()
             end
         end)
     end
-
     task.spawn(function()
         while task.wait(2) do
             pcall(function()
@@ -462,7 +398,6 @@ local success, err = pcall(function()
             end)
         end
     end)
-
     task.spawn(function()
         while task.wait(0.5) do
             pcall(function()
@@ -474,7 +409,6 @@ local success, err = pcall(function()
                             local cName = cleanName(obj.Name)
                             local isAllowed = Config.AllowedEggTypes[cName] ~= false
                             local dist = rootPart and (rootPart.Position - targetPart.Position).Magnitude or 0
-
                             if Config.EspEnabled and isAllowed and dist <= Config.EspDistance then
                                 if not targetPart:FindFirstChild("EggHighlight") then
                                     local hl = Instance.new("Highlight")
@@ -513,40 +447,32 @@ local success, err = pcall(function()
             end)
         end
     end)
-
-    createToggle(farmPage, "AUTO STEAL AURA (WALK NEAR EGG)", function(state)
+    createToggle(farmPage, "AUTO STEAL AURA", function(state)
         Config.AutoSteal = state
     end)
-
-    -- РРЎРџР РђР’Р›Р•РќРќР«Р™ РђР’РўРћ-РЎР‘РћР  (РћР±С…РѕРґРёС‚ РїСЂРѕРІРµСЂРєРё РґРёСЃС‚Р°РЅС†РёРё СЃРµСЂРІРµСЂР°)
     task.spawn(function()
         while task.wait(0.1) do
             if Config.AutoSteal then
                 pcall(function()
-                    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    local char = LocalPlayer.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
                     if root then
                         for _, obj in ipairs(workspace:GetDescendants()) do
                             if isRealEgg(obj) then
                                 local targetPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                                
-                                -- Р Р°РґРёСѓСЃ 15 СЃС‚СѓРґРѕРІ (С‡С‚РѕР±С‹ СЃРµСЂРІРµСЂ РїРѕРІРµСЂРёР», С‡С‚Рѕ РјС‹ СЂСЏРґРѕРј Рё РЅРµ РѕС‚РјРµРЅРёР» СЃР±РѕСЂ)
-                                if targetPart and (root.Position - targetPart.Position).Magnitude <= 15 then
+                                if targetPart and (root.Position - targetPart.Position).Magnitude <= 35 then
                                     for _, v in ipairs(obj:GetDescendants()) do
                                         pcall(function()
                                             if v:IsA("ProximityPrompt") then
                                                 fireproximityprompt(v, 1, true)
                                             elseif v:IsA("ClickDetector") then
                                                 fireclickdetector(v)
-                                            elseif v:IsA("RemoteEvent") then
-                                                v:FireServer()
+                                            elseif v:IsA("BasePart") then
+                                                if typeof(firetouchinterest) == "function" then
+                                                    firetouchinterest(root, v, 0)
+                                                    firetouchinterest(root, v, 1)
+                                                end
                                             end
-                                        end)
-                                    end
-                                    
-                                    if typeof(firetouchinterest) == "function" then
-                                        pcall(function()
-                                            firetouchinterest(root, targetPart, 0)
-                                            firetouchinterest(root, targetPart, 1)
                                         end)
                                     end
                                 end
@@ -557,21 +483,18 @@ local success, err = pcall(function()
             end
         end
     end)
-
     local BottomBar = Instance.new("Frame", MainFrame)
     BottomBar.Size = UDim2.new(1, -20, 0, 54)
     BottomBar.Position = UDim2.new(0, 10, 1, -60)
     BottomBar.BackgroundColor3 = Colors.HeaderBg
     addCorner(BottomBar, 12)
     addStroke(BottomBar, Colors.Border, 1.2)
-
     local AvatarHolder = Instance.new("Frame", BottomBar)
     AvatarHolder.Size = UDim2.fromOffset(40, 40)
     AvatarHolder.Position = UDim2.fromOffset(7, 7)
     AvatarHolder.BackgroundColor3 = Colors.CardBg
     addCorner(AvatarHolder, 10)
     addStroke(AvatarHolder, Colors.Accent, 1.2)
-
     local AvatarImg = Instance.new("ImageLabel", AvatarHolder)
     AvatarImg.Size = UDim2.fromScale(1, 1)
     AvatarImg.BackgroundTransparency = 1
@@ -580,12 +503,10 @@ local success, err = pcall(function()
     pcall(function()
         AvatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(LocalPlayer.UserId) .. "&w=150&h=150"
     end)
-
     local StatsHolder = Instance.new("Frame", BottomBar)
     StatsHolder.Size = UDim2.new(1, -175, 1, -6)
     StatsHolder.Position = UDim2.fromOffset(54, 4)
     StatsHolder.BackgroundTransparency = 1
-
     local NameLbl = Instance.new("TextLabel", StatsHolder)
     NameLbl.Size = UDim2.new(1, 0, 0, 18)
     NameLbl.BackgroundTransparency = 1
@@ -594,7 +515,6 @@ local success, err = pcall(function()
     NameLbl.TextSize = 11
     NameLbl.TextColor3 = Colors.White
     NameLbl.TextXAlignment = Enum.TextXAlignment.Left
-
     local SubLbl = Instance.new("TextLabel", StatsHolder)
     SubLbl.Size = UDim2.new(1, 0, 0, 16)
     SubLbl.Position = UDim2.fromOffset(0, 18)
@@ -604,12 +524,10 @@ local success, err = pcall(function()
     SubLbl.TextSize = 8
     SubLbl.TextColor3 = Colors.Muted
     SubLbl.TextXAlignment = Enum.TextXAlignment.Left
-
     local LiveMetrics = Instance.new("Frame", BottomBar)
     LiveMetrics.Size = UDim2.fromOffset(110, 40)
     LiveMetrics.Position = UDim2.new(1, -118, 0.5, -20)
     LiveMetrics.BackgroundTransparency = 1
-
     local FpsBadge = Instance.new("TextLabel", LiveMetrics)
     FpsBadge.Size = UDim2.new(1, 0, 0, 18)
     FpsBadge.BackgroundColor3 = Colors.CardBg
@@ -619,7 +537,6 @@ local success, err = pcall(function()
     FpsBadge.TextColor3 = Colors.AccentSec
     addCorner(FpsBadge, 5)
     addStroke(FpsBadge, Colors.Border, 1)
-
     local PingBadge = Instance.new("TextLabel", LiveMetrics)
     PingBadge.Size = UDim2.new(1, 0, 0, 18)
     PingBadge.Position = UDim2.new(0, 0, 1, -18)
@@ -630,7 +547,6 @@ local success, err = pcall(function()
     PingBadge.TextColor3 = Colors.Accent
     addCorner(PingBadge, 5)
     addStroke(PingBadge, Colors.Border, 1)
-
     local fc = 0
     local lastTick = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -650,6 +566,3 @@ local success, err = pcall(function()
         end
     end)
 end)
-if not success then
-    warn("[STEAL EGG ERROR]: " .. tostring(err))
-end
