@@ -1,11 +1,18 @@
-print("[NEXUS] Booting Launcher...")
+--[[
+NEXUS TACTICAL HUB - DUAL LAUNCHER
+Optimized for Delta Android & PC
+Clean ASCII Code / In-Memory RAM Execution
+]]
+print("[NEXUS] Initializing Tactical Hub...")
+-- System notification on start
 pcall(function()
 game:GetService("StarterGui"):SetCore("SendNotification", {
 Title = "NEXUS HUB",
-Text = "Launcher starting...",
+Text = "Запуск лаунчера...",
 Duration = 2
 })
 end)
+-- Cleanup previous copies
 if _G.NexusHubMasterCleanup then
 pcall(_G.NexusHubMasterCleanup)
 end
@@ -24,17 +31,20 @@ table.clear(Cleanups)
 end
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local UIS = game:GetService("UserInputService")
+local ContentProvider = game:GetService("ContentProvider")
 local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
 local Camera = workspace.CurrentCamera or workspace:FindFirstChildOfClass("Camera")
+-- Links to target scripts on GitHub
 local GITHUB_SCRIPTS = {
 BlockStrike = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Block-Strike.lua",
 SniperArena = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Sniper-Arena.lua"
 }
-local THUMBNAILS = {
-BlockStrike = "rbxassetid://92306455384915",
-SniperArena = "rbxassetid://124037211421900"
+-- Asset IDs
+local RAW_ASSET_IDS = {
+BlockStrike = "92306455384915",
+SniperArena = "124037211421900"
 }
+-- Tactical Colors
 local Colors = {
 Bg           = Color3.fromRGB(12, 13, 20),
 HeaderBg     = Color3.fromRGB(18, 19, 30),
@@ -47,6 +57,7 @@ BS_Secondary = Color3.fromRGB(0, 255, 170),
 SA_Primary   = Color3.fromRGB(245, 60, 255),
 SA_Secondary = Color3.fromRGB(130, 80, 255)
 }
+-- Safe container search (PlayerGui priority for Android)
 local function getSafeGui()
 local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 4)
 if pgui then return pgui end
@@ -58,6 +69,7 @@ return LocalPlayer:FindFirstChild("PlayerGui")
 end
 local GuiParent = getSafeGui()
 if not GuiParent then return end
+-- Helper functions
 local function tween(inst, time, props, style, dir)
 if not inst then return end
 local tw = TweenService:Create(
@@ -91,6 +103,26 @@ g.Rotation = rot or 0
 g.Parent = parent
 return g
 end
+-- Double-layer Image Loader (rbxthumb + Decal parser)
+local function applyDecalImage(imageLabel, rawId)
+local clean = tostring(rawId):gsub("%D", "")
+-- Method 1: Instant rbxthumb loader
+imageLabel.Image = "rbxthumb://type=Asset&id=" .. clean .. "&w=420&h=420"
+-- Method 2: In-memory Decal to Texture extractor
+task.spawn(function()
+pcall(function()
+local objs = game:GetObjects("rbxassetid://" .. clean)
+if objs and objs[1] and objs[1]:IsA("Decal") then
+local tex = objs[1].Texture
+if tex and tex ~= "" then
+imageLabel.Image = tex
+end
+objs[1]:Destroy()
+end
+end)
+end)
+end
+-- Root ScreenGui
 local RootGui = Instance.new("ScreenGui")
 RootGui.Name = "Nexus_Tactical_Hub"
 RootGui.ResetOnSpawn = false
@@ -101,7 +133,7 @@ table.insert(Cleanups, RootGui)
 local DarkBackdrop = Instance.new("Frame", RootGui)
 DarkBackdrop.Size = UDim2.fromScale(1, 1)
 DarkBackdrop.BackgroundColor3 = Color3.fromRGB(4, 5, 8)
-DarkBackdrop.BackgroundTransparency = 0.4
+DarkBackdrop.BackgroundTransparency = 0.45
 DarkBackdrop.BorderSizePixel = 0
 DarkBackdrop.ZIndex = 1
 local vp = Camera and Camera.ViewportSize or Vector2.new(800, 450)
@@ -124,7 +156,7 @@ TopNeon.BorderSizePixel = 0
 TopNeon.BackgroundColor3 = Colors.BS_Primary
 TopNeon.ZIndex = 10
 addGradient(TopNeon, Colors.BS_Primary, Colors.SA_Primary, 0)
--- Mini Toggle Pill (Mobile)
+-- Floating Mobile Mini Pill
 local MiniPill = Instance.new("Frame", RootGui)
 MiniPill.Name = "MiniPill"
 MiniPill.Size = UDim2.fromOffset(125, 32)
@@ -174,7 +206,7 @@ end)
 end
 end
 PillBtn.Activated:Connect(function() toggleHub(true) end)
--- Header
+-- Header Area
 local Header = Instance.new("Frame", MainPanel)
 Header.Size = UDim2.new(1, 0, 0, 44)
 Header.BackgroundColor3 = Colors.HeaderBg
@@ -239,6 +271,7 @@ CardsLayout.FillDirection = Enum.FillDirection.Horizontal
 CardsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 CardsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 CardsLayout.Padding = UDim.new(0, 12)
+-- Script Execution Logic
 local isInjecting = false
 local function executeFromGitHub(url, title, accentColor)
 if isInjecting then return end
@@ -247,7 +280,7 @@ PanelBorder.Color = accentColor
 pcall(function()
 game:GetService("StarterGui"):SetCore("SendNotification", {
 Title = title,
-Text = "Loading script from GitHub...",
+Text = "Загрузка скрипта с GitHub...",
 Duration = 3
 })
 end)
@@ -262,11 +295,7 @@ local success, rawScript = pcall(function()
 return game:HttpGet(url)
 end)
 if success and rawScript then
--- Strip invisible unicode if present
-rawScript = rawScript:gsub("\226\128\139", ""):gsub("[\194-\244][\128-\191]*", function(c)
-if c == "\226\128\139" then return "" end
-return c
-end)
+rawScript = rawScript:gsub("\226\128\139", "")
 local fn, err = loadstring(rawScript)
 if fn then
 fn()
@@ -274,11 +303,12 @@ else
 warn("[NEXUS ERROR] " .. tostring(err))
 end
 else
-warn("[NEXUS HTTP ERROR]")
+warn("[NEXUS HTTP GET FAILED]")
 end
 end)
 end)
 end
+-- Game Card Builder
 local function buildCard(cfg)
 local cardW = math.floor((winW - 36) / 2)
 local cardH = winH - 64
@@ -291,8 +321,8 @@ card.ZIndex = 6
 addCorner(card, 12)
 addStroke(card, Colors.CardBorder, 1.2)
 local Banner = Instance.new("Frame", card)
-Banner.Size = UDim2.new(1, 0, 0, math.floor(cardH * 0.48))
-Banner.BackgroundColor3 = Color3.fromRGB(12, 13, 20)
+Banner.Size = UDim2.new(1, 0, 0, math.floor(cardH * 0.52))
+Banner.BackgroundColor3 = Color3.fromRGB(15, 17, 26)
 Banner.BorderSizePixel = 0
 Banner.ClipsDescendants = true
 Banner.ZIndex = 7
@@ -301,15 +331,22 @@ local ThumbImg = Instance.new("ImageLabel", Banner)
 ThumbImg.Size = UDim2.fromScale(1, 1)
 ThumbImg.BackgroundTransparency = 1
 ThumbImg.ScaleType = Enum.ScaleType.Crop
-ThumbImg.Image = cfg.Image
 ThumbImg.ZIndex = 7
-local ShadowOverlay = Instance.new("Frame", Banner)
-ShadowOverlay.Size = UDim2.fromScale(1, 1)
-ShadowOverlay.BackgroundColor3 = Colors.CardBg
-ShadowOverlay.BackgroundTransparency = 0.2
-ShadowOverlay.BorderSizePixel = 0
-ShadowOverlay.ZIndex = 8
-addGradient(ShadowOverlay, Color3.fromRGB(0, 0, 0), Colors.CardBg, 90)
+applyDecalImage(ThumbImg, cfg.RawAssetId)
+-- Soft bottom text shadow
+local BottomShadow = Instance.new("Frame", Banner)
+BottomShadow.Size = UDim2.new(1, 0, 0.45, 0)
+BottomShadow.Position = UDim2.new(0, 0, 0.55, 0)
+BottomShadow.BackgroundColor3 = Color3.fromRGB(8, 9, 14)
+BottomShadow.BorderSizePixel = 0
+BottomShadow.ZIndex = 8
+local shadowGrad = Instance.new("UIGradient", BottomShadow)
+shadowGrad.Rotation = 90
+shadowGrad.Transparency = NumberSequence.new({
+NumberSequenceKeypoint.new(0, 1),
+NumberSequenceKeypoint.new(0.5, 0.4),
+NumberSequenceKeypoint.new(1, 0)
+})
 local TitleLbl = Instance.new("TextLabel", Banner)
 TitleLbl.Size = UDim2.new(1, -16, 0, 18)
 TitleLbl.Position = UDim2.new(0, 10, 1, -22)
@@ -326,7 +363,7 @@ Body.Position = UDim2.fromOffset(8, Banner.Size.Y.Offset + 6)
 Body.BackgroundTransparency = 1
 Body.ZIndex = 8
 local DescLbl = Instance.new("TextLabel", Body)
-DescLbl.Size = UDim2.new(1, 0, 0, 26)
+DescLbl.Size = UDim2.new(1, 0, 0, 24)
 DescLbl.BackgroundTransparency = 1
 DescLbl.Font = Enum.Font.GothamMedium
 DescLbl.Text = cfg.Description
@@ -357,18 +394,25 @@ LaunchBtn.Activated:Connect(function()
 LaunchTxt.Text = "INJECTING..."
 executeFromGitHub(cfg.ScriptUrl, cfg.Title, cfg.PrimaryColor)
 end)
+task.spawn(function()
+pcall(function()
+ContentProvider:PreloadAsync({ThumbImg})
+end)
+end)
 end
+-- Create Block Strike Card
 buildCard({
 Title = "BLOCK STRIKE",
-Image = THUMBNAILS.BlockStrike,
+RawAssetId = RAW_ASSET_IDS.BlockStrike,
 PrimaryColor = Colors.BS_Primary,
 SecondaryColor = Colors.BS_Secondary,
 Description = "Hitbox Expander, Hitscan Aimbot and Fast Reload.",
 ScriptUrl = GITHUB_SCRIPTS.BlockStrike
 })
+-- Create Sniper Arena Card
 buildCard({
 Title = "SNIPER ARENA",
-Image = THUMBNAILS.SniperArena,
+RawAssetId = RAW_ASSET_IDS.SniperArena,
 PrimaryColor = Colors.SA_Primary,
 SecondaryColor = Colors.SA_Secondary,
 Description = "Smooth Camera Lock, Visual ESP and Config Manager.",
