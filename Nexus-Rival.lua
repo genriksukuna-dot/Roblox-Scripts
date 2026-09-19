@@ -1,4 +1,3 @@
--- STREAMING_CHUNK: Initializing master environment and cleanup
 local successInit, errInit = pcall(function()
     if _G.NexusShooterCleanup then
         pcall(_G.NexusShooterCleanup)
