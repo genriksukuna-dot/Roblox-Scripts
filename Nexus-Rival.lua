@@ -76,8 +76,7 @@ local Config = {
     },
     Settings = {
         Watermark = true,
-        RainbowFOV = false,
-        InvertTeam = false
+        RainbowFOV = false
     },
     ActiveTab = "AIMBOT"
 }
@@ -156,26 +155,38 @@ local PaletteSwatches = {
     Color3.fromRGB(255, 220, 40), Color3.fromRGB(185, 75, 255), Color3.fromRGB(255, 255, 255)
 }
 
---// RIVALS-COMPATIBLE TEAM CHECK
+--// RIVALS-COMPATIBLE TEAM CHECK WITH FFA FILTER
 local function isTeammate(p)
     if not p or p == LocalPlayer then return true end
 
+    local function isValidTeam(t)
+        local s = tostring(t):lower()
+        -- Р•СЃР»Рё РєРѕРјР°РЅРґР° 0, РїСѓСЃС‚Р°СЏ РёР»Рё None - СЌС‚Рѕ FFA РјР°С‚С‡, РєР°Р¶РґС‹Р№ СЃР°Рј Р·Р° СЃРµР±СЏ (РІСЂР°Рі)
+        if s == "none" or s == "neutral" or s == "ffa" or s == "" or s == "0" or s == "false" then 
+            return false 
+        end
+        return true
+    end
+
     if LocalPlayer.Team ~= nil and p.Team ~= nil then
-        if LocalPlayer.Team == p.Team then return true end
+        if LocalPlayer.Team == p.Team and LocalPlayer.Team.Name ~= "Neutral" then return true end
     end
 
     if LocalPlayer.TeamColor ~= nil and p.TeamColor ~= nil then
-        if LocalPlayer.TeamColor == p.TeamColor then return true end
+        if LocalPlayer.TeamColor == p.TeamColor and tostring(LocalPlayer.TeamColor) ~= "White" then return true end
     end
 
     local myChar = LocalPlayer.Character
     local pChar = p.Character
     local attrsToCheck = {"Team", "TeamId", "team", "teamId", "TeamName", "team_id"}
+    
     for _, attr in ipairs(attrsToCheck) do
         local t1 = LocalPlayer:GetAttribute(attr) or (myChar and myChar:GetAttribute(attr))
         local t2 = p:GetAttribute(attr) or (pChar and pChar:GetAttribute(attr))
         if t1 ~= nil and t2 ~= nil then
-            if tostring(t1):lower() == tostring(t2):lower() then return true end
+            if tostring(t1):lower() == tostring(t2):lower() and isValidTeam(t1) then 
+                return true 
+            end
         end
     end
 
@@ -183,17 +194,13 @@ local function isTeammate(p)
         local v1 = LocalPlayer:FindFirstChild(val) or (myChar and myChar:FindFirstChild(val))
         local v2 = p:FindFirstChild(val) or (pChar and pChar:FindFirstChild(val))
         if v1 and v2 and v1:IsA("ValueBase") and v2:IsA("ValueBase") then
-            if tostring(v1.Value) == tostring(v2.Value) then return true end
+            if tostring(v1.Value):lower() == tostring(v2.Value):lower() and isValidTeam(v1.Value) then 
+                return true 
+            end
         end
     end
 
     return false
-end
-
-local function checkAlly(p)
-    local ally = isTeammate(p)
-    if Config.Settings.InvertTeam then return not ally end
-    return ally
 end
 
 --// FAST DEAD-PLAYER PURGE
@@ -979,7 +986,7 @@ local function validateStickyTarget()
     local hum = char:FindFirstChildOfClass("Humanoid")
     if not hum or hum.Health <= 0 then return false end
     
-    if Config.Aimbot.TeamCheck and checkAlly(StickyTargetPlayer) then return false end
+    if Config.Aimbot.TeamCheck and isTeammate(StickyTargetPlayer) then return false end
 
     StickyTargetPart = resolveTargetPart(char, Config.Aimbot.TargetPart)
     if not StickyTargetPart then return false end
@@ -1009,7 +1016,7 @@ local function acquireBestTarget()
 
     for _, enemy in ipairs(Players:GetPlayers()) do
         if enemy ~= LocalPlayer and enemy.Character then
-            if Config.Aimbot.TeamCheck and checkAlly(enemy) then continue end
+            if Config.Aimbot.TeamCheck and isTeammate(enemy) then continue end
             local char = enemy.Character
             local hum = char:FindFirstChildOfClass("Humanoid")
             local targetPart = resolveTargetPart(char, Config.Aimbot.TargetPart)
@@ -1240,7 +1247,7 @@ RunService:BindToRenderStep("NexusESPEngine", Enum.RenderPriority.Camera.Value +
         local root = char and char:FindFirstChild("HumanoidRootPart")
         local head = char and char:FindFirstChild("Head")
 
-        local isAlly = checkAlly(player)
+        local isAlly = isTeammate(player)
 
         if Config.ESP.Enabled and char and hum and hum.Health > 0 and root and head and not (Config.ESP.TeamCheck and isAlly) then
             local rootScreen, onScreenRoot = Camera:WorldToViewportPoint(root.Position)
@@ -1566,9 +1573,6 @@ end)
 createToggle(settingsPage, "RGB RAINBOW FOV CIRCLE", Config.Settings.RainbowFOV, function(state)
     Config.Settings.RainbowFOV = state
 end)
-createToggle(settingsPage, "INVERT TEAM FILTER", Config.Settings.InvertTeam, function(state)
-    Config.Settings.InvertTeam = state
-end)
 
 local themeGroup = Instance.new("Frame", settingsPage)
 themeGroup.Size = UDim2.new(1, -6, 0, 68)
@@ -1647,6 +1651,7 @@ local configActionsRow = Instance.new("Frame", settingsPage)
 configActionsRow.Size = UDim2.new(1, -6, 0, 36)
 configActionsRow.BackgroundTransparency = 1
 configActionsRow.ZIndex = 17
+configActionsRow.Position = UDim2.fromOffset(0, 115)
 
 local saveConfigBtn = Instance.new("TextButton", configActionsRow)
 saveConfigBtn.Size = UDim2.new(0.48, -4, 1, 0)
@@ -1685,6 +1690,7 @@ local hubActionsRow = Instance.new("Frame", settingsPage)
 hubActionsRow.Size = UDim2.new(1, -6, 0, 36)
 hubActionsRow.BackgroundTransparency = 1
 hubActionsRow.ZIndex = 17
+hubActionsRow.Position = UDim2.fromOffset(0, 155)
 
 local resetConfigBtn = Instance.new("TextButton", hubActionsRow)
 resetConfigBtn.Size = UDim2.new(0.48, -4, 1, 0)
