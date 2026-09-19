@@ -1,4 +1,4 @@
-print("[NEXUS] Р—Р°РїСѓСЃРє СЃРєСЂРёРїС‚Р°...")
+print("[NEXUS] Starting execution...")
 
 --// MULTI-RUN CLEANUP
 if _G.NexusShooterCleanup then
@@ -41,7 +41,7 @@ if not LocalPlayer then
     until LocalPlayer or (os.clock() - startT > 3)
 end
 if not LocalPlayer then 
-    print("[NEXUS] РћС€РёР±РєР°: LocalPlayer РЅРµ РЅР°Р№РґРµРЅ!")
+    warn("[NEXUS] Error: LocalPlayer not found!")
     return 
 end
 
@@ -82,15 +82,7 @@ local Config = {
     ActiveTab = "AIMBOT"
 }
 
-local CurrentLang = "ru"
 local TG_LINK = "https://t.me/+qTcgFmViTe9jMzU6"
-
---// HEX DECODER (ANTI-MOJIBAKE)
-local function H(hex)
-    return (hex:gsub('..', function (cc)
-        return string.char(tonumber(cc, 16))
-    end))
-end
 
 --// SAVE & LOAD SYSTEM
 local ConfigFileName = "NexusRivalConfig.json"
@@ -99,20 +91,14 @@ local function saveConfig()
     local data = {
         Aimbot = Config.Aimbot,
         ESP = {
-            Enabled = Config.ESP.Enabled,
-            Boxes = Config.ESP.Boxes,
-            Skeleton = Config.ESP.Skeleton,
-            Snaplines = Config.ESP.Snaplines,
-            Names = Config.ESP.Names,
-            Distance = Config.ESP.Distance,
-            HealthBar = Config.ESP.HealthBar,
-            TeamCheck = Config.ESP.TeamCheck,
+            Enabled = Config.ESP.Enabled, Boxes = Config.ESP.Boxes, Skeleton = Config.ESP.Skeleton,
+            Snaplines = Config.ESP.Snaplines, Names = Config.ESP.Names, Distance = Config.ESP.Distance,
+            HealthBar = Config.ESP.HealthBar, TeamCheck = Config.ESP.TeamCheck,
             BoxColor = {Config.ESP.BoxColor.R, Config.ESP.BoxColor.G, Config.ESP.BoxColor.B},
             TracerColor = {Config.ESP.TracerColor.R, Config.ESP.TracerColor.G, Config.ESP.TracerColor.B},
             SkeletonColor = {Config.ESP.SkeletonColor.R, Config.ESP.SkeletonColor.G, Config.ESP.SkeletonColor.B},
         },
-        Settings = Config.Settings,
-        Language = CurrentLang
+        Settings = Config.Settings
     }
     local success, encoded = pcall(function() return HttpService:JSONEncode(data) end)
     if success and writefile then
@@ -125,29 +111,19 @@ local function loadConfig()
         local success, decoded = pcall(function() return HttpService:JSONDecode(readfile(ConfigFileName)) end)
         if success and decoded then
             if decoded.Aimbot then
-                for k, v in pairs(decoded.Aimbot) do
-                    if Config.Aimbot[k] ~= nil then Config.Aimbot[k] = v end
-                end
+                for k, v in pairs(decoded.Aimbot) do if Config.Aimbot[k] ~= nil then Config.Aimbot[k] = v end end
             end
             if decoded.ESP then
                 for k, v in pairs(decoded.ESP) do
-                    if k == "BoxColor" and type(v) == "table" then
-                        Config.ESP.BoxColor = Color3.new(v[1], v[2], v[3])
-                    elseif k == "TracerColor" and type(v) == "table" then
-                        Config.ESP.TracerColor = Color3.new(v[1], v[2], v[3])
-                    elseif k == "SkeletonColor" and type(v) == "table" then
-                        Config.ESP.SkeletonColor = Color3.new(v[1], v[2], v[3])
-                    elseif Config.ESP[k] ~= nil then
-                        Config.ESP[k] = v
-                    end
+                    if k == "BoxColor" and type(v) == "table" then Config.ESP.BoxColor = Color3.new(v[1], v[2], v[3])
+                    elseif k == "TracerColor" and type(v) == "table" then Config.ESP.TracerColor = Color3.new(v[1], v[2], v[3])
+                    elseif k == "SkeletonColor" and type(v) == "table" then Config.ESP.SkeletonColor = Color3.new(v[1], v[2], v[3])
+                    elseif Config.ESP[k] ~= nil then Config.ESP[k] = v end
                 end
             end
             if decoded.Settings then
-                for k, v in pairs(decoded.Settings) do
-                    if Config.Settings[k] ~= nil then Config.Settings[k] = v end
-                end
+                for k, v in pairs(decoded.Settings) do if Config.Settings[k] ~= nil then Config.Settings[k] = v end end
             end
-            if decoded.Language then CurrentLang = decoded.Language end
         end
     end
 end
@@ -157,39 +133,21 @@ pcall(loadConfig)
 local Themes = {
     CyberNeon = {
         Name = "Cyber Neon",
-        Bg = Color3.fromRGB(11, 13, 20),
-        HeaderBg = Color3.fromRGB(16, 19, 30),
-        CardBg = Color3.fromRGB(19, 23, 36),
-        Border = Color3.fromRGB(38, 48, 75),
-        Accent = Color3.fromRGB(0, 230, 255),
-        AccentSec = Color3.fromRGB(0, 255, 160),
-        Text = Color3.fromRGB(255, 255, 255),
-        Muted = Color3.fromRGB(145, 155, 185),
-        TabActive = Color3.fromRGB(0, 185, 225),
+        Bg = Color3.fromRGB(11, 13, 20), HeaderBg = Color3.fromRGB(16, 19, 30), CardBg = Color3.fromRGB(19, 23, 36),
+        Border = Color3.fromRGB(38, 48, 75), Accent = Color3.fromRGB(0, 230, 255), AccentSec = Color3.fromRGB(0, 255, 160),
+        Text = Color3.fromRGB(255, 255, 255), Muted = Color3.fromRGB(145, 155, 185), TabActive = Color3.fromRGB(0, 185, 225),
     },
     CrimsonBlood = {
         Name = "Crimson Blood",
-        Bg = Color3.fromRGB(14, 10, 12),
-        HeaderBg = Color3.fromRGB(22, 14, 17),
-        CardBg = Color3.fromRGB(28, 17, 21),
-        Border = Color3.fromRGB(70, 32, 40),
-        Accent = Color3.fromRGB(255, 45, 75),
-        AccentSec = Color3.fromRGB(255, 140, 0),
-        Text = Color3.fromRGB(255, 255, 255),
-        Muted = Color3.fromRGB(180, 140, 150),
-        TabActive = Color3.fromRGB(210, 35, 65),
+        Bg = Color3.fromRGB(14, 10, 12), HeaderBg = Color3.fromRGB(22, 14, 17), CardBg = Color3.fromRGB(28, 17, 21),
+        Border = Color3.fromRGB(70, 32, 40), Accent = Color3.fromRGB(255, 45, 75), AccentSec = Color3.fromRGB(255, 140, 0),
+        Text = Color3.fromRGB(255, 255, 255), Muted = Color3.fromRGB(180, 140, 150), TabActive = Color3.fromRGB(210, 35, 65),
     },
     PurpleVoid = {
         Name = "Purple Void",
-        Bg = Color3.fromRGB(12, 10, 20),
-        HeaderBg = Color3.fromRGB(18, 14, 30),
-        CardBg = Color3.fromRGB(24, 18, 38),
-        Border = Color3.fromRGB(60, 40, 95),
-        Accent = Color3.fromRGB(175, 70, 255),
-        AccentSec = Color3.fromRGB(240, 60, 220),
-        Text = Color3.fromRGB(255, 255, 255),
-        Muted = Color3.fromRGB(165, 145, 195),
-        TabActive = Color3.fromRGB(150, 50, 230),
+        Bg = Color3.fromRGB(12, 10, 20), HeaderBg = Color3.fromRGB(18, 14, 30), CardBg = Color3.fromRGB(24, 18, 38),
+        Border = Color3.fromRGB(60, 40, 95), Accent = Color3.fromRGB(175, 70, 255), AccentSec = Color3.fromRGB(240, 60, 220),
+        Text = Color3.fromRGB(255, 255, 255), Muted = Color3.fromRGB(165, 145, 195), TabActive = Color3.fromRGB(150, 50, 230),
     }
 }
 local CurrentTheme = Themes.CyberNeon
@@ -198,126 +156,18 @@ local PaletteSwatches = {
     Color3.fromRGB(255, 220, 40), Color3.fromRGB(185, 75, 255), Color3.fromRGB(255, 255, 255)
 }
 
---// LOCALES (HEX PROTECTED)
-local Locales = {
-    en = {
-        hub_title = "NEXUS RIVAL | TACTICAL SHOOTER",
-        mini_open = "OPEN MENU",
-        tab_aim = "AIMBOT",
-        tab_esp = "VISUALS",
-        tab_status = "STATUS",
-        tab_settings = "SETTINGS",
-        aim_enable = "STICKY AIMBOT LOCK",
-        aim_hitbox = "HEAD HITBOX EXPANDER",
-        aim_hitbox_size = "HITBOX EXPANSION SIZE",
-        aim_recoil = "NO RECOIL / STABILIZER",
-        aim_smooth = "AIM SMOOTHNESS",
-        aim_fov = "AIM FOV RADIUS",
-        aim_vis = "WALL VISIBILITY CHECK",
-        aim_team = "IGNORE TEAMMATES (AIMBOT)",
-        aim_part = "TARGET BODY PART",
-        aim_fov_circle = "DRAW FOV CIRCLE",
-        part_head = "HEAD", part_torso = "TORSO", part_legs = "LEGS",
-        esp_enable = "MASTER 2D VISUALS (ESP)",
-        esp_boxes = "2D BOUNDING BOXES",
-        esp_skeleton = "SKELETON ESP (BONES)",
-        esp_lines = "SNAPLINES (TRACERS)",
-        esp_names = "PLAYER NAMES",
-        esp_dist = "DISTANCE DISPLAY",
-        esp_health = "DYNAMIC HEALTH BAR",
-        esp_team = "IGNORE TEAMMATES (ESP)",
-        col_box = "BOX COLOR PALETTE",
-        col_tracer = "TRACER COLOR PALETTE",
-        col_skel = "SKELETON COLOR PALETTE",
-        sec_user = "PLAYER PROFILE",
-        sec_device = "DEVICE & HARDWARE TELEMETRY",
-        sec_metrics = "PERFORMANCE METRICS",
-        sec_target = "LOCKED TARGET TELEMETRY",
-        metric_fps = "FRAME RATE", metric_ping = "NETWORK PING", metric_mem = "TOTAL MEMORY",
-        dev_platform = "PLATFORM / OS", dev_res = "SCREEN RESOLUTION", dev_input = "PRIMARY INPUT",
-        target_none = "NO ACTIVE LOCK",
-        btn_copy_job = "COPY SERVER ID", btn_rejoin = "REJOIN SERVER",
-        theme_title = "SELECT UI THEME", lang_title = "SELECT LANGUAGE",
-        opt_watermark = "SCREEN HUD WATERMARK", opt_rainbow = "RGB RAINBOW FOV CIRCLE", opt_invert_team = "INVERT TEAM FILTER",
-        btn_reset = "RESET DEFAULTS", btn_unload = "UNLOAD / SELF-DESTRUCT", btn_save_config = "SAVE CONFIG", btn_load_config = "LOAD CONFIG",
-        tg_title = "JOIN TELEGRAM", tg_desc = "Get exclusive configs & script updates!", tg_btn = "COPY TG LINK", tg_copied = "COPIED TO CLIPBOARD!",
-    },
-    ru = {
-        hub_title = H("4E4558555320524956414C207C20D0A8D0A3D0A2D095D0A020D0A5D090D091"),
-        mini_open = H("D09ED0A2D09AD0A0D0ABD0A2D0AC20D09CD095D09DD0AE"),
-        tab_aim = H("D090D098D09CD091D09ED0A2"),
-        tab_esp = H("D092D098D097D0A3D090D09BD0AB"),
-        tab_status = H("D0A1D0A2D090D0A2D0A3D0A1"),
-        tab_settings = H("D09DD090D0A1D0A2D0A0D09ED099D09AD098"),
-        aim_enable = H("D09BD098D09FD09AD098D09920D090D098D09CD091D09ED0A2"),
-        aim_hitbox = H("D0A0D090D0A1D0A8D098D0A0D095D09DD098D09520D0A5D098D0A2D091D09ED09AD0A1D09020D093D09ED09BD09ED092D0AB"),
-        aim_hitbox_size = H("D0A0D090D097D09CD095D0A020D0A5D098D0A2D091D09ED09AD0A1D0902028D0A1D0A2D0A3D094D0AB29"),
-        aim_recoil = H("D090D09DD0A2D0982DD09ED0A2D094D090D0A7D0902028D0A1D0A2D090D091D098D09BD098D097D090D0A2D09ED0A029"),
-        aim_smooth = H("D09FD09BD090D092D09DD09ED0A1D0A2D0AC20D09DD090D092D095D094D095D09DD098D0AF"),
-        aim_fov = H("D0A0D090D094D098D0A3D0A120D097D090D0A5D092D090D0A2D0902028464F5629"),
-        aim_vis = H("D09FD0A0D09ED092D095D0A0D09AD09020D09DD09020D0A1D0A2D095D09DD0AB"),
-        aim_team = H("D098D093D09DD09ED0A0D098D0A0D09ED092D090D0A2D0AC20D0A1D09ED0AED097D09DD098D09AD09ED0922028D090D098D09C29"),
-        aim_part = H("D097D09ED09DD09020D0A1D0A2D0A0D095D09BD0ACD091D0AB"),
-        aim_fov_circle = H("D0A0D098D0A1D09ED092D090D0A2D0AC20D09AD0A0D0A3D09320464F56"),
-        part_head = H("D093D09ED09BD09ED092D090"), part_torso = H("D0A2D095D09BD09E"), part_legs = H("D09DD09ED093D098"),
-        esp_enable = H("D093D09BD090D092D09DD0ABD099204553502028D092D0A529"),
-        esp_boxes = H("324420D091D09ED09AD0A1D0AB"),
-        esp_skeleton = H("D0A1D09AD095D09BD095D0A2D0AB2028D09AD09ED0A1D0A2D09829"),
-        esp_lines = H("D09BD098D09DD098D09820285452414345525329"),
-        esp_names = H("D09DD098D09AD09DD095D099D09CD0AB20D098D093D0A0D09ED09AD09ED092"),
-        esp_dist = H("D094D098D0A1D0A2D090D09DD0A6D098D0AF20D09220D09CD095D0A2D0A0D090D0A5"),
-        esp_health = H("D09FD09ED09BD09ED0A1D09AD09020D097D094D09ED0A0D09ED092D0ACD0AF"),
-        esp_team = H("D098D093D09DD09ED0A0D098D0A0D09ED092D090D0A2D0AC20D0A1D09ED0AED097D09DD098D09AD09ED092202845535029"),
-        col_box = H("D0A6D092D095D0A220324420D091D09ED09AD0A1D09ED092"),
-        col_tracer = H("D0A6D092D095D0A220D09BD098D09DD098D09920285452414345525329"),
-        col_skel = H("D0A6D092D095D0A220D0A1D09AD095D09BD095D0A2D09ED092"),
-        sec_user = H("D09FD0A0D09ED0A4D098D09BD0AC20D098D093D0A0D09ED09AD090"),
-        sec_device = H("D0A3D0A1D0A2D0A0D09ED099D0A1D0A2D092D09E20D09820D0A1D098D0A1D0A2D095D09CD090"),
-        sec_metrics = H("D09FD0A0D09ED098D097D092D09ED094D098D0A2D095D09BD0ACD09DD09ED0A1D0A2D0AC"),
-        sec_target = H("D0A2D095D09BD095D09CD095D0A2D0A0D098D0AF20D0A6D095D09BD098"),
-        metric_fps = H("D0A7D090D0A1D0A2D09ED0A2D09020465053"), metric_ping = H("D09FD098D09DD093202850494E4729"), metric_mem = H("D09FD090D09CD0AFD0A2D0AC2052414D"),
-        dev_platform = H("D09FD09BD090D0A2D0A4D09ED0A0D09CD090"), dev_res = H("D0A0D090D097D0A0D095D0A8D095D09DD098D095"), dev_input = H("D0A2D098D09F20D092D092D09ED094D090"),
-        target_none = H("D09DD095D0A220D097D090D0A5D092D090D0A2D090"),
-        btn_copy_job = H("D0A1D09AD09ED09FD098D0A0D09ED092D090D0A2D0AC204A4F42204944"), btn_rejoin = H("D09FD095D0A0D095D097D090D099D0A2D09820D09DD09020D0A1D095D0A0D092D095D0A0"),
-        theme_title = H("D0A6D092D095D0A2D09ED092D090D0AF20D0A2D095D09CD090"), lang_title = H("D0AFD097D0ABD09A20D098D09DD0A2D095D0A0D0A4D095D099D0A1D090"),
-        opt_watermark = H("48554420D092D098D094D096D095D0A220D09DD09020D0ADD09AD0A0D090D09DD095"), opt_rainbow = H("52474220D0A0D090D094D0A3D096D09DD0ABD09920D09AD0A0D0A3D09320464F56"), opt_invert_team = H("D098D09DD092D095D0A0D0A1D098D0AF20D09FD0A0D09ED092D095D0A0D09AD09820D09AD09ED09CD090D09DD094"),
-        btn_reset = H("D0A1D091D0A0D09ED0A120D09DD090D0A1D0A2D0A0D09ED095D09A"), btn_unload = H("D092D0ABD093D0A0D0A3D097D098D0A2D0AC20D0A5D090D091"), btn_save_config = H("D0A1D09ED0A5D0A0D090D09DD098D0A2D0AC20D09AD09ED09DD0A4D098D093"), btn_load_config = H("D097D090D093D0A0D0A3D097D098D0A2D0AC20D09AD09ED09DD0A4D098D093"),
-        tg_title = H("D09DD090D0A820D0A2D095D09BD095D093D0A0D090D09C"), tg_desc = H("D0A1D0B2D0B5D0B6D0B8D0B520D0BADD0BED0BDD184D0B8D0B3D0B820D0B820D0BED0B1D0BDD0BED0B2D0BBD0B5D0BDD0B8D18F20D181D0BADD180D0B8D0BFD182D0B021"), tg_btn = H("D0A1D09AD09ED09FD098D0A0D09ED092D090D0A2D0AC20D0A1D0A1D0ABD09BD09AD0A3"), tg_copied = H("D0A1D0A1D0ABD09BD09AD09020D0A1D09AD09ED09FD098D0A0D09ED092D090D09DD09021"),
-    },
-    ES = {
-        ScriptTitle = "NEXUS RIVAL",
-        Subtitle = "MOTOR TACTICO",
-        StatusReady = "ESTADO: CONECTADO Y LISTO",
-        EngineStatus = "HITSCAN ACTIVO",
-        TabAim = "ASISTENCIA", TabESP = "ESP VISUAL", TabVis = "RETICULAS", TabStat = "ESTADO", TabSet = "AJUSTES",
-        HeaderAimDesc = "Bloqueo a la cabeza y estabilizador", HeaderESPDesc = "Visuales 2D y esqueleto", HeaderVisDesc = "Anillo FOV y cruz", HeaderStatDesc = "Metricas del sistema", HeaderSetDesc = "Configuraciones",
-        TgTitle = "UNETE A TELEGRAM", TgDesc = "Scripts exclusivos!", TgBtn = "COPIAR LINK", TgCopied = "COPIADO!",
-        AimEnabled = "Aimbot Fijo", AimEnabledDesc = "Bloqueo instantaneo", AimMagnet = "Hitbox Expander", AimMagnetDesc = "Aumenta la cabeza", AimMagnetSize = "Tamano", AimMagnetSizeDesc = "Tamano del hitbox", AimVis = "Visibilidad", AimVisDesc = "Ignorar paredes", AimTeam = "Filtro de Equipo", AimTeamDesc = "Ignorar aliados", AimFOV = "Radio FOV", AimFOVDesc = "Angulo de vision", AimSmooth = "Suavidad", AimSmoothDesc = "Movimiento fluido", AimDist = "Distancia Max", AimDistDesc = "Rango del aimbot", ESPEnabled = "ESP Maestro", ESPEnabledDesc = "Visuales", ESPBox = "Cajas 2D", ESPBoxDesc = "Bordes de enemigos", ESPName = "Nombres", ESPNameDesc = "Usuario", ESPHealth = "Salud", ESPHealthDesc = "Barra de vida", ESPDist = "Distancia", ESPDistDesc = "Metros", ESPTracer = "Lineas", ESPTracerDesc = "Rastreadores", ESPSkeleton = "Esqueleto", ESPSkeletonDesc = "Huesos", ESPTeam = "Ignorar Equipo", ESPTeamDesc = "Ocultar aliados", ESPRange = "Rango ESP", ESPRangeDesc = "Dibujo maximo", VisFOV = "Circulo FOV", VisFOVDesc = "Dibujar anillo", VisCross = "Reticula", VisCrossDesc = "Cruz central", LangTitle = "Idioma", LangDesc = "Seleccionar", ThemeTitle = "Tema", ThemeDesc = "Colores", opt_watermark = "Marca de agua", opt_rainbow = "Arcoiris FOV", opt_invert_team = "Invertir equipo", btn_reset = "RESTAURAR", btn_unload = "DESCARGAR", btn_save_config = "GUARDAR", btn_load_config = "CARGAR",
-        part_head = "CABEZA", part_torso = "TORSO", part_legs = "PIERNAS", aim_part = "ZONA DE DISPARO"
-    }
-}
-
-local function L(key)
-    if Locales[CurrentLang] and Locales[CurrentLang][key] then return Locales[CurrentLang][key] end
-    return Locales.en[key] or key
-end
-local LangUpdaters = {}
-
 --// RIVALS-COMPATIBLE TEAM CHECK
 local function isTeammate(p)
     if not p or p == LocalPlayer then return true end
 
-    -- 1. Standard Roblox Teams
     if LocalPlayer.Team ~= nil and p.Team ~= nil then
         if LocalPlayer.Team == p.Team then return true end
     end
 
-    -- 2. Team Colors
     if LocalPlayer.TeamColor ~= nil and p.TeamColor ~= nil then
         if LocalPlayer.TeamColor == p.TeamColor then return true end
     end
 
-    -- 3. Custom Attributes (Crucial for Rivals and similar FPS games)
     local myChar = LocalPlayer.Character
     local pChar = p.Character
     local attrsToCheck = {"Team", "TeamId", "team", "teamId", "TeamName", "team_id"}
@@ -329,7 +179,6 @@ local function isTeammate(p)
         end
     end
 
-    -- 4. ValueBase Elements
     for _, val in ipairs({"Team", "TeamValue", "TeamName"}) do
         local v1 = LocalPlayer:FindFirstChild(val) or (myChar and myChar:FindFirstChild(val))
         local v2 = p:FindFirstChild(val) or (pChar and pChar:FindFirstChild(val))
@@ -384,7 +233,7 @@ local function detectHardwareProfile()
 end
 local DeviceInfo = detectHardwareProfile()
 
---// SAFE GUI CONTAINER FOR DELTA (MOBILE)
+--// SAFE GUI CONTAINER
 local function getSafeContainer()
     local target = nil
     pcall(function() target = gethui and gethui() end)
@@ -397,7 +246,7 @@ end
 
 local ContainerGui = getSafeContainer()
 if not ContainerGui then
-    print("[NEXUS] UI ERROR: Could not find valid GUI container!")
+    warn("[NEXUS] UI ERROR: Could not find valid GUI container!")
     return
 end
 
@@ -428,8 +277,6 @@ local function copyClipboard(text)
     if fn then pcall(fn, text) return true end
     return false
 end
-
-print("[NEXUS] Building UI...")
 
 --// CREATE UI
 local RootScreen = Instance.new("ScreenGui")
@@ -502,7 +349,7 @@ TgTitle.Size = UDim2.new(1, -40, 0, 18)
 TgTitle.Position = UDim2.fromOffset(12, 10)
 TgTitle.BackgroundTransparency = 1
 TgTitle.Font = Enum.Font.GothamBlack
-TgTitle.Text = L("tg_title")
+TgTitle.Text = "JOIN TELEGRAM"
 TgTitle.TextSize = 10.5
 TgTitle.TextColor3 = CurrentTheme.Text
 TgTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -513,7 +360,7 @@ TgClose.Size = UDim2.fromOffset(20, 20)
 TgClose.Position = UDim2.new(1, -26, 0, 10)
 TgClose.BackgroundTransparency = 1
 TgClose.Font = Enum.Font.GothamBold
-TgClose.Text = "вњ•"
+TgClose.Text = "X"
 TgClose.TextSize = 11
 TgClose.TextColor3 = CurrentTheme.Muted
 TgClose.ZIndex = 203
@@ -523,7 +370,7 @@ TgDesc.Size = UDim2.new(1, -24, 0, 26)
 TgDesc.Position = UDim2.fromOffset(12, 30)
 TgDesc.BackgroundTransparency = 1
 TgDesc.Font = Enum.Font.GothamMedium
-TgDesc.Text = L("tg_desc")
+TgDesc.Text = "Get exclusive configs & script updates!"
 TgDesc.TextSize = 8.5
 TgDesc.TextColor3 = CurrentTheme.Muted
 TgDesc.TextXAlignment = Enum.TextXAlignment.Left
@@ -536,7 +383,7 @@ TgCopyBtn.Position = UDim2.fromOffset(12, 62)
 TgCopyBtn.BackgroundColor3 = CurrentTheme.Accent
 TgCopyBtn.BorderSizePixel = 0
 TgCopyBtn.Font = Enum.Font.GothamBlack
-TgCopyBtn.Text = L("tg_btn")
+TgCopyBtn.Text = "COPY TG LINK"
 TgCopyBtn.TextSize = 9
 TgCopyBtn.TextColor3 = Color3.fromRGB(15, 15, 20)
 TgCopyBtn.ZIndex = 202
@@ -546,11 +393,11 @@ tween(TgCard, 0.55, {Position = UDim2.new(1, -280, 0, 50)}, Enum.EasingStyle.Bac
 
 TgCopyBtn.Activated:Connect(function()
     copyClipboard(TG_LINK)
-    TgCopyBtn.Text = L("tg_copied")
+    TgCopyBtn.Text = "COPIED TO CLIPBOARD!"
     TgCopyBtn.BackgroundColor3 = CurrentTheme.AccentSec
     task.delay(2.2, function()
         if TgCopyBtn.Parent then
-            TgCopyBtn.Text = L("tg_btn")
+            TgCopyBtn.Text = "COPY TG LINK"
             TgCopyBtn.BackgroundColor3 = CurrentTheme.Accent
         end
     end)
@@ -585,7 +432,7 @@ PillLabel.Size = UDim2.new(1, -28, 1, 0)
 PillLabel.Position = UDim2.fromOffset(26, 0)
 PillLabel.BackgroundTransparency = 1
 PillLabel.Font = Enum.Font.GothamBlack
-PillLabel.Text = L("mini_open")
+PillLabel.Text = "OPEN MENU"
 PillLabel.TextSize = 8.5
 PillLabel.TextColor3 = CurrentTheme.Text
 PillLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -719,7 +566,7 @@ TitleLabel.Size = UDim2.new(1, -90, 1, 0)
 TitleLabel.Position = UDim2.fromOffset(44, 0)
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Font = Enum.Font.GothamBlack
-TitleLabel.Text = L("hub_title")
+TitleLabel.Text = "NEXUS RIVAL | TACTICAL SHOOTER"
 TitleLabel.TextSize = 11
 TitleLabel.TextColor3 = CurrentTheme.Text
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -731,7 +578,7 @@ CloseBtn.Position = UDim2.new(1, -34, 0.5, -13)
 CloseBtn.BackgroundColor3 = CurrentTheme.CardBg
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Text = "вњ•"
+CloseBtn.Text = "X"
 CloseBtn.TextSize = 11
 CloseBtn.TextColor3 = CurrentTheme.Muted
 CloseBtn.ZIndex = 14
@@ -790,14 +637,19 @@ local function switchTab(tabId)
     end
 end
 
-local tabListKeys = {"tab_aim", "tab_esp", "tab_status", "tab_settings"}
-local tabInternal = {"AIMBOT", "VISUALS", "STATUS", "SETTINGS"}
-for idx, internalName in ipairs(tabInternal) do
+local tabNames = {
+    AIMBOT = "AIMBOT",
+    VISUALS = "VISUALS",
+    STATUS = "STATUS",
+    SETTINGS = "SETTINGS"
+}
+
+for internalName, displayName in pairs(tabNames) do
     local btn = Instance.new("TextButton", TabBar)
     btn.Size = UDim2.new(0.24, -4, 1, 0)
     btn.BackgroundColor3 = (Config.ActiveTab == internalName) and CurrentTheme.TabActive or CurrentTheme.CardBg
     btn.Font = Enum.Font.GothamBold
-    btn.Text = L(tabListKeys[idx])
+    btn.Text = displayName
     btn.TextSize = 9.5
     btn.TextColor3 = (Config.ActiveTab == internalName) and Color3.fromRGB(255, 255, 255) or CurrentTheme.Muted
     btn.ZIndex = 16
@@ -809,7 +661,7 @@ for idx, internalName in ipairs(tabInternal) do
 end
 
 --// UI WIDGET GENERATORS
-local function createToggle(parent, titleKey, defaultState, callback)
+local function createToggle(parent, titleText, defaultState, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -6, 0, 38)
     frame.BackgroundColor3 = CurrentTheme.CardBg
@@ -822,12 +674,11 @@ local function createToggle(parent, titleKey, defaultState, callback)
     title.Position = UDim2.fromOffset(12, 0)
     title.BackgroundTransparency = 1
     title.Font = Enum.Font.GothamBold
-    title.Text = L(titleKey)
+    title.Text = titleText
     title.TextSize = 9.5
     title.TextColor3 = CurrentTheme.Text
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.ZIndex = 18
-    table.insert(LangUpdaters, function() title.Text = L(titleKey) end)
 
     local pill = Instance.new("Frame", frame)
     pill.Size = UDim2.fromOffset(46, 22)
@@ -866,7 +717,7 @@ local function createToggle(parent, titleKey, defaultState, callback)
     return { Frame = frame, Title = title, Stroke = stroke }
 end
 
-local function createSlider(parent, titleKey, minVal, maxVal, defaultVal, callback)
+local function createSlider(parent, titleText, minVal, maxVal, defaultVal, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -6, 0, 50)
     frame.BackgroundColor3 = CurrentTheme.CardBg
@@ -880,12 +731,11 @@ local function createSlider(parent, titleKey, minVal, maxVal, defaultVal, callba
     title.Position = UDim2.fromOffset(12, 6)
     title.BackgroundTransparency = 1
     title.Font = Enum.Font.GothamBold
-    title.Text = L(titleKey)
+    title.Text = titleText
     title.TextSize = 9.5
     title.TextColor3 = CurrentTheme.Text
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.ZIndex = 18
-    table.insert(LangUpdaters, function() title.Text = L(titleKey) end)
 
     local valLabel = Instance.new("TextLabel", frame)
     valLabel.Size = UDim2.new(0, 50, 0, 20)
@@ -946,7 +796,7 @@ local function createSlider(parent, titleKey, minVal, maxVal, defaultVal, callba
     return { Frame = frame, Title = title, Stroke = stroke, ValLabel = valLabel }
 end
 
-local function createColorPicker(parent, titleKey, initialColor, callback)
+local function createColorPicker(parent, titleText, initialColor, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -6, 0, 52)
     frame.BackgroundColor3 = CurrentTheme.CardBg
@@ -960,12 +810,11 @@ local function createColorPicker(parent, titleKey, initialColor, callback)
     title.Position = UDim2.fromOffset(12, 0)
     title.BackgroundTransparency = 1
     title.Font = Enum.Font.GothamBold
-    title.Text = L(titleKey)
+    title.Text = titleText
     title.TextSize = 8.5
     title.TextColor3 = CurrentTheme.Text
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.ZIndex = 18
-    table.insert(LangUpdaters, function() title.Text = L(titleKey) end)
 
     local swatchesHolder = Instance.new("Frame", frame)
     swatchesHolder.Size = UDim2.new(0.50, -10, 0, 24)
@@ -1004,23 +853,23 @@ end
 
 --// AIMBOT TAB
 local aimPage = TabPages["AIMBOT"]
-createToggle(aimPage, "aim_hitbox", Config.Aimbot.HitboxExpander, function(state)
+createToggle(aimPage, "HEAD HITBOX EXPANDER", Config.Aimbot.HitboxExpander, function(state)
     Config.Aimbot.HitboxExpander = state
 end)
-createSlider(aimPage, "aim_hitbox_size", 2, 25, Config.Aimbot.HitboxSize, function(val) Config.Aimbot.HitboxSize = val end)
-createToggle(aimPage, "aim_enable", Config.Aimbot.Enabled, function(state) Config.Aimbot.Enabled = state end)
-createToggle(aimPage, "aim_recoil", Config.Aimbot.NoRecoil, function(state) Config.Aimbot.NoRecoil = state end)
-createSlider(aimPage, "aim_smooth", 1, 100, math.floor(Config.Aimbot.Smoothness * 100), function(val) Config.Aimbot.Smoothness = val / 100 end)
-createSlider(aimPage, "aim_fov", 30, 450, Config.Aimbot.FOV, function(val)
+createSlider(aimPage, "HITBOX EXPANSION SIZE", 2, 25, Config.Aimbot.HitboxSize, function(val) Config.Aimbot.HitboxSize = val end)
+createToggle(aimPage, "STICKY AIMBOT LOCK", Config.Aimbot.Enabled, function(state) Config.Aimbot.Enabled = state end)
+createToggle(aimPage, "NO RECOIL / STABILIZER", Config.Aimbot.NoRecoil, function(state) Config.Aimbot.NoRecoil = state end)
+createSlider(aimPage, "AIM SMOOTHNESS", 1, 100, math.floor(Config.Aimbot.Smoothness * 100), function(val) Config.Aimbot.Smoothness = val / 100 end)
+createSlider(aimPage, "AIM FOV RADIUS", 30, 450, Config.Aimbot.FOV, function(val)
     Config.Aimbot.FOV = val
     FOVCircleFrame.Size = UDim2.fromOffset(val * 2, val * 2)
 end)
-createToggle(aimPage, "aim_fov_circle", Config.Aimbot.DrawFOV, function(state)
+createToggle(aimPage, "DRAW FOV CIRCLE", Config.Aimbot.DrawFOV, function(state)
     Config.Aimbot.DrawFOV = state
     FOVCircleFrame.Visible = state
 end)
-createToggle(aimPage, "aim_vis", Config.Aimbot.VisibilityCheck, function(state) Config.Aimbot.VisibilityCheck = state end)
-createToggle(aimPage, "aim_team", Config.Aimbot.TeamCheck, function(state) Config.Aimbot.TeamCheck = state end)
+createToggle(aimPage, "WALL VISIBILITY CHECK", Config.Aimbot.VisibilityCheck, function(state) Config.Aimbot.VisibilityCheck = state end)
+createToggle(aimPage, "IGNORE TEAMMATES (AIMBOT)", Config.Aimbot.TeamCheck, function(state) Config.Aimbot.TeamCheck = state end)
 
 local boneFrame = Instance.new("Frame", aimPage)
 boneFrame.Size = UDim2.new(1, -6, 0, 38)
@@ -1034,7 +883,7 @@ boneTitle.Size = UDim2.new(1, -120, 1, 0)
 boneTitle.Position = UDim2.fromOffset(12, 0)
 boneTitle.BackgroundTransparency = 1
 boneTitle.Font = Enum.Font.GothamBold
-boneTitle.Text = L("aim_part")
+boneTitle.Text = "TARGET BODY PART"
 boneTitle.TextSize = 9.5
 boneTitle.TextColor3 = CurrentTheme.Text
 boneTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -1045,7 +894,7 @@ boneBtn.Size = UDim2.fromOffset(105, 24)
 boneBtn.Position = UDim2.new(1, -112, 0.5, -12)
 boneBtn.BackgroundColor3 = CurrentTheme.HeaderBg
 boneBtn.Font = Enum.Font.GothamBlack
-boneBtn.Text = L("part_head")
+boneBtn.Text = "HEAD"
 boneBtn.TextSize = 9
 boneBtn.TextColor3 = CurrentTheme.Accent
 boneBtn.ZIndex = 19
@@ -1057,9 +906,9 @@ local currentPartIndex = 1
 local function updateBoneBtnText()
     local pName = bodyPartsCycle[currentPartIndex]
     Config.Aimbot.TargetPart = pName
-    if pName == "Head" then boneBtn.Text = L("part_head")
-    elseif pName == "Torso" then boneBtn.Text = L("part_torso")
-    else boneBtn.Text = L("part_legs") end
+    if pName == "Head" then boneBtn.Text = "HEAD"
+    elseif pName == "Torso" then boneBtn.Text = "TORSO"
+    else boneBtn.Text = "LEGS" end
 end
 boneBtn.Activated:Connect(function()
     currentPartIndex = (currentPartIndex % #bodyPartsCycle) + 1
@@ -1068,18 +917,18 @@ end)
 
 --// ESP TAB
 local espPage = TabPages["VISUALS"]
-createToggle(espPage, "esp_enable", Config.ESP.Enabled, function(state) Config.ESP.Enabled = state end)
-createToggle(espPage, "esp_boxes", Config.ESP.Boxes, function(state) Config.ESP.Boxes = state end)
-createToggle(espPage, "esp_skeleton", Config.ESP.Skeleton, function(state) Config.ESP.Skeleton = state end)
-createToggle(espPage, "esp_lines", Config.ESP.Snaplines, function(state) Config.ESP.Snaplines = state end)
-createToggle(espPage, "esp_names", Config.ESP.Names, function(state) Config.ESP.Names = state end)
-createToggle(espPage, "esp_dist", Config.ESP.Distance, function(state) Config.ESP.Distance = state end)
-createToggle(espPage, "esp_health", Config.ESP.HealthBar, function(state) Config.ESP.HealthBar = state end)
-createToggle(espPage, "esp_team", Config.ESP.TeamCheck, function(state) Config.ESP.TeamCheck = state end)
+createToggle(espPage, "MASTER 2D VISUALS (ESP)", Config.ESP.Enabled, function(state) Config.ESP.Enabled = state end)
+createToggle(espPage, "2D BOUNDING BOXES", Config.ESP.Boxes, function(state) Config.ESP.Boxes = state end)
+createToggle(espPage, "SKELETON ESP (BONES)", Config.ESP.Skeleton, function(state) Config.ESP.Skeleton = state end)
+createToggle(espPage, "SNAPLINES (TRACERS)", Config.ESP.Snaplines, function(state) Config.ESP.Snaplines = state end)
+createToggle(espPage, "PLAYER NAMES", Config.ESP.Names, function(state) Config.ESP.Names = state end)
+createToggle(espPage, "DISTANCE DISPLAY", Config.ESP.Distance, function(state) Config.ESP.Distance = state end)
+createToggle(espPage, "DYNAMIC HEALTH BAR", Config.ESP.HealthBar, function(state) Config.ESP.HealthBar = state end)
+createToggle(espPage, "IGNORE TEAMMATES (ESP)", Config.ESP.TeamCheck, function(state) Config.ESP.TeamCheck = state end)
 
-createColorPicker(espPage, "col_box", Config.ESP.BoxColor, function(c) Config.ESP.BoxColor = c end)
-createColorPicker(espPage, "col_skel", Config.ESP.SkeletonColor, function(c) Config.ESP.SkeletonColor = c end)
-createColorPicker(espPage, "col_tracer", Config.ESP.TracerColor, function(c) Config.ESP.TracerColor = c end)
+createColorPicker(espPage, "BOX COLOR PALETTE", Config.ESP.BoxColor, function(c) Config.ESP.BoxColor = c end)
+createColorPicker(espPage, "SKELETON COLOR PALETTE", Config.ESP.SkeletonColor, function(c) Config.ESP.SkeletonColor = c end)
+createColorPicker(espPage, "TRACER COLOR PALETTE", Config.ESP.TracerColor, function(c) Config.ESP.TracerColor = c end)
 
 --// RAYCAST LOGIC
 local staticRaycastParams = RaycastParams.new()
@@ -1088,7 +937,6 @@ staticRaycastParams.IgnoreWater = true
 
 local function resolveTargetPart(char, partMode)
     if not char then return nil end
-    -- ANTI-SHAKE FIX: Always target root/torso for stability, offset applied mathematically later
     return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("Head")
 end
 
@@ -1217,7 +1065,6 @@ RunService:BindToRenderStep("NexusAimEngine", Enum.RenderPriority.Camera.Value +
     if StickyTargetPart and StickyTargetPlayer and StickyTargetPlayer.Character then
         local camPos = Camera.CFrame.Position
         
-        -- ANTI-SHAKE: Offset mathematically from stable root to head/legs to avoid animation jitter
         local basePos = StickyTargetPart.Position
         if Config.Aimbot.TargetPart == "Head" then
             basePos = basePos + Vector3.new(0, 1.45, 0)
@@ -1473,17 +1320,23 @@ RunService:BindToRenderStep("NexusESPEngine", Enum.RenderPriority.Camera.Value +
                     w.DistLabel.Size = UDim2.fromOffset(boxWidth, 12)
                 else w.DistLabel.Visible = false end
 
-                if Config.ESP.HealthBar then
+                if Config.ESP.HealthBar and hum then
                     w.HealthBg.Visible = true
                     w.HealthBg.Size = UDim2.fromOffset(3.5, boxHeight)
                     w.HealthBg.Position = UDim2.fromOffset(boxPos.X - 6, boxPos.Y)
                     local hpRatio = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
                     w.HealthFill.Size = UDim2.fromScale(1, hpRatio)
                     w.HealthFill.Position = UDim2.fromScale(0, 1 - hpRatio)
-                    if hpRatio > 0.5 then w.HealthFill.BackgroundColor3 = CurrentTheme.AccentSec
-                    elseif hpRatio > 0.25 then w.HealthFill.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
-                    else w.HealthFill.BackgroundColor3 = Color3.fromRGB(255, 45, 60) end
-                else w.HealthBg.Visible = false end
+                    if hpRatio > 0.5 then
+                        w.HealthFill.BackgroundColor3 = CurrentTheme.AccentSec
+                    elseif hpRatio > 0.25 then
+                        w.HealthFill.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
+                    else
+                        w.HealthFill.BackgroundColor3 = Color3.fromRGB(255, 45, 60)
+                    end
+                else
+                    w.HealthBg.Visible = false
+                end
             else
                 w.Box.Visible = false; w.Tracer.Visible = false; w.NameLabel.Visible = false; w.DistLabel.Visible = false; w.HealthBg.Visible = false
                 for _, ln in ipairs(w.SkeletonLines) do ln.Visible = false end
@@ -1544,7 +1397,7 @@ uTag.Size = UDim2.fromOffset(80, 15)
 uTag.Position = UDim2.fromOffset(68, 46)
 uTag.BackgroundColor3 = isPrem and Color3.fromRGB(245, 180, 40) or CurrentTheme.HeaderBg
 uTag.Font = Enum.Font.GothamBold
-uTag.Text = isPrem and "в… PREMIUM" or "VERIFIED CLIENT"
+uTag.Text = isPrem and "PREMIUM" or "VERIFIED CLIENT"
 uTag.TextSize = 7.5
 uTag.TextColor3 = isPrem and Color3.fromRGB(15, 15, 15) or CurrentTheme.Accent
 uTag.ZIndex = 18
@@ -1564,7 +1417,7 @@ deviceLayout.CellPadding = UDim2.new(0.02, 0, 0, 6)
 deviceLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 deviceLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
-local function makeTelemetryCard(parent, titleKey, initialVal, color)
+local function makeTelemetryCard(parent, titleText, initialVal, color)
     local card = Instance.new("Frame", parent)
     card.BackgroundColor3 = CurrentTheme.HeaderBg
     card.BorderSizePixel = 0
@@ -1577,7 +1430,7 @@ local function makeTelemetryCard(parent, titleKey, initialVal, color)
     lbl.Position = UDim2.fromOffset(3, 4)
     lbl.BackgroundTransparency = 1
     lbl.Font = Enum.Font.GothamBold
-    lbl.Text = L(titleKey)
+    lbl.Text = titleText
     lbl.TextSize = 7.2
     lbl.TextColor3 = CurrentTheme.Muted
     lbl.ZIndex = 19
@@ -1592,13 +1445,12 @@ local function makeTelemetryCard(parent, titleKey, initialVal, color)
     num.TextColor3 = color
     num.ZIndex = 19
 
-    table.insert(LangUpdaters, function() lbl.Text = L(titleKey) end)
     return { Box = card, Title = lbl, Value = num }
 end
 
-local platformCard = makeTelemetryCard(deviceCard, "dev_platform", DeviceInfo.Platform, CurrentTheme.Accent)
-local resCard = makeTelemetryCard(deviceCard, "dev_res", DeviceInfo.Resolution, CurrentTheme.AccentSec)
-local inputCard = makeTelemetryCard(deviceCard, "dev_input", DeviceInfo.Input, Color3.fromRGB(245, 190, 60))
+local platformCard = makeTelemetryCard(deviceCard, "PLATFORM / OS", DeviceInfo.Platform, CurrentTheme.Accent)
+local resCard = makeTelemetryCard(deviceCard, "SCREEN RESOLUTION", DeviceInfo.Resolution, CurrentTheme.AccentSec)
+local inputCard = makeTelemetryCard(deviceCard, "PRIMARY INPUT", DeviceInfo.Input, Color3.fromRGB(245, 190, 60))
 
 local metricsFrame = Instance.new("Frame", statusPage)
 metricsFrame.Size = UDim2.new(1, -6, 0, 64)
@@ -1614,9 +1466,9 @@ metricsLayout.CellPadding = UDim2.new(0.02, 0, 0, 6)
 metricsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 metricsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
-local fpsCard = makeTelemetryCard(metricsFrame, "metric_fps", "60", CurrentTheme.AccentSec)
-local pingCard = makeTelemetryCard(metricsFrame, "metric_ping", "30ms", CurrentTheme.Accent)
-local memCard = makeTelemetryCard(metricsFrame, "metric_mem", "120MB", Color3.fromRGB(240, 180, 50))
+local fpsCard = makeTelemetryCard(metricsFrame, "FRAME RATE", "60", CurrentTheme.AccentSec)
+local pingCard = makeTelemetryCard(metricsFrame, "NETWORK PING", "30ms", CurrentTheme.Accent)
+local memCard = makeTelemetryCard(metricsFrame, "TOTAL MEMORY", "120MB", Color3.fromRGB(240, 180, 50))
 
 local targetTelemetryFrame = Instance.new("Frame", statusPage)
 targetTelemetryFrame.Size = UDim2.new(1, -6, 0, 68)
@@ -1631,7 +1483,7 @@ targetHeader.Size = UDim2.new(1, -20, 0, 18)
 targetHeader.Position = UDim2.fromOffset(12, 5)
 targetHeader.BackgroundTransparency = 1
 targetHeader.Font = Enum.Font.GothamBlack
-targetHeader.Text = L("sec_target")
+targetHeader.Text = "LOCKED TARGET TELEMETRY"
 targetHeader.TextSize = 9.5
 targetHeader.TextColor3 = CurrentTheme.Text
 targetHeader.TextXAlignment = Enum.TextXAlignment.Left
@@ -1642,7 +1494,7 @@ targetStatusText.Size = UDim2.new(1, -24, 0, 16)
 targetStatusText.Position = UDim2.fromOffset(12, 24)
 targetStatusText.BackgroundTransparency = 1
 targetStatusText.Font = Enum.Font.GothamBold
-targetStatusText.Text = L("target_none")
+targetStatusText.Text = "NO ACTIVE LOCK"
 targetStatusText.TextSize = 9
 targetStatusText.TextColor3 = CurrentTheme.Muted
 targetStatusText.TextXAlignment = Enum.TextXAlignment.Left
@@ -1672,7 +1524,7 @@ local copyJobBtn = Instance.new("TextButton", actionButtonsRow)
 copyJobBtn.Size = UDim2.new(0.48, -4, 1, 0)
 copyJobBtn.BackgroundColor3 = CurrentTheme.CardBg
 copyJobBtn.Font = Enum.Font.GothamBold
-copyJobBtn.Text = L("btn_copy_job")
+copyJobBtn.Text = "COPY SERVER ID"
 copyJobBtn.TextSize = 8.5
 copyJobBtn.TextColor3 = CurrentTheme.Accent
 copyJobBtn.ZIndex = 18
@@ -1681,7 +1533,7 @@ addStroke(copyJobBtn, CurrentTheme.Border, 1)
 copyJobBtn.Activated:Connect(function()
     copyClipboard(tostring(game.JobId))
     copyJobBtn.Text = "COPIED!"
-    task.delay(1.5, function() copyJobBtn.Text = L("btn_copy_job") end)
+    task.delay(1.5, function() copyJobBtn.Text = "COPY SERVER ID" end)
 end)
 
 local rejoinBtn = Instance.new("TextButton", actionButtonsRow)
@@ -1689,7 +1541,7 @@ rejoinBtn.Size = UDim2.new(0.48, -4, 1, 0)
 rejoinBtn.Position = UDim2.new(0.52, 4, 0, 0)
 rejoinBtn.BackgroundColor3 = CurrentTheme.CardBg
 rejoinBtn.Font = Enum.Font.GothamBold
-rejoinBtn.Text = L("btn_rejoin")
+rejoinBtn.Text = "REJOIN SERVER"
 rejoinBtn.TextSize = 8.5
 rejoinBtn.TextColor3 = CurrentTheme.AccentSec
 rejoinBtn.ZIndex = 18
@@ -1705,22 +1557,16 @@ rejoinBtn.Activated:Connect(function()
     end
 end)
 
-table.insert(LangUpdaters, function()
-    targetHeader.Text = L("sec_target")
-    copyJobBtn.Text = L("btn_copy_job")
-    rejoinBtn.Text = L("btn_rejoin")
-end)
-
 --// SETTINGS TAB PAGE
 local settingsPage = TabPages["SETTINGS"]
-createToggle(settingsPage, "opt_watermark", Config.Settings.Watermark, function(state)
+createToggle(settingsPage, "SCREEN HUD WATERMARK", Config.Settings.Watermark, function(state)
     Config.Settings.Watermark = state
     WatermarkFrame.Visible = state
 end)
-createToggle(settingsPage, "opt_rainbow", Config.Settings.RainbowFOV, function(state)
+createToggle(settingsPage, "RGB RAINBOW FOV CIRCLE", Config.Settings.RainbowFOV, function(state)
     Config.Settings.RainbowFOV = state
 end)
-createToggle(settingsPage, "opt_invert_team", Config.Settings.InvertTeam, function(state)
+createToggle(settingsPage, "INVERT TEAM FILTER", Config.Settings.InvertTeam, function(state)
     Config.Settings.InvertTeam = state
 end)
 
@@ -1737,7 +1583,7 @@ themeTitle.Size = UDim2.new(1, -20, 0, 20)
 themeTitle.Position = UDim2.fromOffset(10, 6)
 themeTitle.BackgroundTransparency = 1
 themeTitle.Font = Enum.Font.GothamBlack
-themeTitle.Text = L("theme_title")
+themeTitle.Text = "SELECT UI THEME"
 themeTitle.TextSize = 9.5
 themeTitle.TextColor3 = CurrentTheme.Text
 themeTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -1753,12 +1599,10 @@ local themeListLayout = Instance.new("UIListLayout", themeRow)
 themeListLayout.FillDirection = Enum.FillDirection.Horizontal
 themeListLayout.Padding = UDim.new(0, 8)
 
-local applyFullLanguage = nil
 local function triggerInterfaceReloadAnimation(callback)
     tween(MainFrame, 0.20, {Size = UDim2.fromOffset(80, 50), Position = UDim2.fromScale(0.5, 0.53)}, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
     task.delay(0.22, function()
         pcall(callback)
-        if applyFullLanguage then pcall(applyFullLanguage) end
         MainFrame.Position = UDim2.fromScale(0.5, 0.48)
         tween(MainFrame, 0.30, {Size = UDim2.fromOffset(winW, winH), Position = UDim2.fromScale(0.5, 0.5)}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     end)
@@ -1798,89 +1642,6 @@ for _, tKey in ipairs(themeKeys) do
     end)
 end
 
-local langGroup = Instance.new("Frame", settingsPage)
-langGroup.Size = UDim2.new(1, -6, 0, 68)
-langGroup.BackgroundColor3 = CurrentTheme.CardBg
-langGroup.BorderSizePixel = 0
-langGroup.ZIndex = 17
-addCorner(langGroup, 10)
-addStroke(langGroup, CurrentTheme.Border, 1)
-
-local langTitle = Instance.new("TextLabel", langGroup)
-langTitle.Size = UDim2.new(1, -20, 0, 20)
-langTitle.Position = UDim2.fromOffset(10, 6)
-langTitle.BackgroundTransparency = 1
-langTitle.Font = Enum.Font.GothamBlack
-langTitle.Text = L("lang_title")
-langTitle.TextSize = 9.5
-langTitle.TextColor3 = CurrentTheme.Text
-langTitle.TextXAlignment = Enum.TextXAlignment.Left
-langTitle.ZIndex = 18
-
-local langRow = Instance.new("Frame", langGroup)
-langRow.Size = UDim2.new(1, -20, 0, 30)
-langRow.Position = UDim2.fromOffset(10, 28)
-langRow.BackgroundTransparency = 1
-langRow.ZIndex = 18
-
-local langListLayout = Instance.new("UIListLayout", langRow)
-langListLayout.FillDirection = Enum.FillDirection.Horizontal
-langListLayout.Padding = UDim.new(0, 8)
-
-local languages = {
-    { Code = "en", Name = "English" },
-    { Code = "ru", Name = H("D0A0D183D181D181D0BAD0B8D0B9") },
-    { Code = "es", Name = H("45737061C3B16F6C") }
-}
-
-applyFullLanguage = function()
-    TitleLabel.Text = L("hub_title")
-    PillLabel.Text = L("mini_open")
-    themeTitle.Text = L("theme_title")
-    langTitle.Text = L("lang_title")
-    updateBoneBtnText()
-    TabButtons["AIMBOT"].Text = L("tab_aim")
-    TabButtons["VISUALS"].Text = L("tab_esp")
-    TabButtons["STATUS"].Text = L("tab_status")
-    TabButtons["SETTINGS"].Text = L("tab_settings")
-    platformCard.Title.Text = L("dev_platform")
-    resCard.Title.Text = L("dev_res")
-    inputCard.Title.Text = L("dev_input")
-    fpsCard.Title.Text = L("metric_fps")
-    pingCard.Title.Text = L("metric_ping")
-    memCard.Title.Text = L("metric_mem")
-    targetHeader.Text = L("sec_target")
-    copyJobBtn.Text = L("btn_copy_job")
-    rejoinBtn.Text = L("btn_rejoin")
-    TgTitle.Text = L("tg_title")
-    TgDesc.Text = L("tg_desc")
-    TgCopyBtn.Text = L("tg_btn")
-    for _, fn in ipairs(LangUpdaters) do pcall(fn) end
-end
-
-table.insert(LangUpdaters, function()
-    themeTitle.Text = L("theme_title")
-    langTitle.Text = L("lang_title")
-end)
-
-for _, lang in ipairs(languages) do
-    local lBtn = Instance.new("TextButton", langRow)
-    lBtn.Size = UDim2.new(0.32, -4, 1, 0)
-    lBtn.BackgroundColor3 = CurrentTheme.HeaderBg
-    lBtn.Font = Enum.Font.GothamBold
-    lBtn.Text = lang.Name
-    lBtn.TextSize = 9.5
-    lBtn.TextColor3 = CurrentTheme.Text
-    lBtn.ZIndex = 19
-    addCorner(lBtn, 7)
-    addStroke(lBtn, CurrentTheme.Border, 1)
-    lBtn.Activated:Connect(function()
-        if CurrentLang == lang.Code then return end
-        CurrentLang = lang.Code
-        triggerInterfaceReloadAnimation(function() applyFullLanguage() end)
-    end)
-end
-
 -- Save/Load Config
 local configActionsRow = Instance.new("Frame", settingsPage)
 configActionsRow.Size = UDim2.new(1, -6, 0, 36)
@@ -1891,7 +1652,7 @@ local saveConfigBtn = Instance.new("TextButton", configActionsRow)
 saveConfigBtn.Size = UDim2.new(0.48, -4, 1, 0)
 saveConfigBtn.BackgroundColor3 = CurrentTheme.CardBg
 saveConfigBtn.Font = Enum.Font.GothamBold
-saveConfigBtn.Text = L("btn_save_config")
+saveConfigBtn.Text = "SAVE CONFIG"
 saveConfigBtn.TextSize = 8.5
 saveConfigBtn.TextColor3 = CurrentTheme.AccentSec
 saveConfigBtn.ZIndex = 18
@@ -1900,7 +1661,7 @@ addStroke(saveConfigBtn, CurrentTheme.Border, 1)
 saveConfigBtn.Activated:Connect(function()
     saveConfig()
     saveConfigBtn.Text = "SAVED!"
-    task.delay(1.2, function() saveConfigBtn.Text = L("btn_save_config") end)
+    task.delay(1.2, function() saveConfigBtn.Text = "SAVE CONFIG" end)
 end)
 
 local loadConfigBtn = Instance.new("TextButton", configActionsRow)
@@ -1908,7 +1669,7 @@ loadConfigBtn.Size = UDim2.new(0.48, -4, 1, 0)
 loadConfigBtn.Position = UDim2.new(0.52, 4, 0, 0)
 loadConfigBtn.BackgroundColor3 = CurrentTheme.CardBg
 loadConfigBtn.Font = Enum.Font.GothamBold
-loadConfigBtn.Text = L("btn_load_config")
+loadConfigBtn.Text = "LOAD CONFIG"
 loadConfigBtn.TextSize = 8.5
 loadConfigBtn.TextColor3 = CurrentTheme.Accent
 loadConfigBtn.ZIndex = 18
@@ -1917,7 +1678,7 @@ addStroke(loadConfigBtn, CurrentTheme.Border, 1)
 loadConfigBtn.Activated:Connect(function()
     loadConfig()
     loadConfigBtn.Text = "LOADED!"
-    task.delay(1.2, function() loadConfigBtn.Text = L("btn_load_config") end)
+    task.delay(1.2, function() loadConfigBtn.Text = "LOAD CONFIG" end)
 end)
 
 local hubActionsRow = Instance.new("Frame", settingsPage)
@@ -1929,7 +1690,7 @@ local resetConfigBtn = Instance.new("TextButton", hubActionsRow)
 resetConfigBtn.Size = UDim2.new(0.48, -4, 1, 0)
 resetConfigBtn.BackgroundColor3 = CurrentTheme.CardBg
 resetConfigBtn.Font = Enum.Font.GothamBold
-resetConfigBtn.Text = L("btn_reset")
+resetConfigBtn.Text = "RESET DEFAULTS"
 resetConfigBtn.TextSize = 8.5
 resetConfigBtn.TextColor3 = CurrentTheme.Text
 resetConfigBtn.ZIndex = 18
@@ -1947,7 +1708,7 @@ resetConfigBtn.Activated:Connect(function()
     Config.Settings.RainbowFOV = false
     FOVCircleFrame.Size = UDim2.fromOffset(300, 300)
     resetConfigBtn.Text = "DONE!"
-    task.delay(1.2, function() resetConfigBtn.Text = L("btn_reset") end)
+    task.delay(1.2, function() resetConfigBtn.Text = "RESET DEFAULTS" end)
 end)
 
 local unloadBtn = Instance.new("TextButton", hubActionsRow)
@@ -1955,7 +1716,7 @@ unloadBtn.Size = UDim2.new(0.48, -4, 1, 0)
 unloadBtn.Position = UDim2.new(0.52, 4, 0, 0)
 unloadBtn.BackgroundColor3 = Color3.fromRGB(45, 18, 24)
 unloadBtn.Font = Enum.Font.GothamBold
-unloadBtn.Text = L("btn_unload")
+unloadBtn.Text = "UNLOAD HUB"
 unloadBtn.TextSize = 8.5
 unloadBtn.TextColor3 = Color3.fromRGB(255, 75, 95)
 unloadBtn.ZIndex = 18
@@ -1963,13 +1724,6 @@ addCorner(unloadBtn, 8)
 addStroke(unloadBtn, Color3.fromRGB(80, 25, 35), 1)
 unloadBtn.Activated:Connect(function()
     if _G.NexusShooterCleanup then _G.NexusShooterCleanup() end
-end)
-
-table.insert(LangUpdaters, function()
-    saveConfigBtn.Text = L("btn_save_config")
-    loadConfigBtn.Text = L("btn_load_config")
-    resetConfigBtn.Text = L("btn_reset")
-    unloadBtn.Text = L("btn_unload")
 end)
 
 --// RUNTIME DISPATCHER
@@ -2010,12 +1764,12 @@ table.insert(Cleanups, RunService.RenderStepped:Connect(function()
                 elseif hpRatio > 0.25 then targetHealthBarFill.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
                 else targetHealthBarFill.BackgroundColor3 = Color3.fromRGB(255, 45, 60) end
             else
-                targetStatusText.Text = L("target_none")
+                targetStatusText.Text = "NO ACTIVE LOCK"
                 targetStatusText.TextColor3 = CurrentTheme.Muted
                 targetHealthBarFill.Size = UDim2.fromScale(0, 1)
             end
         else
-            targetStatusText.Text = L("target_none")
+            targetStatusText.Text = "NO ACTIVE LOCK"
             targetStatusText.TextColor3 = CurrentTheme.Muted
             targetHealthBarFill.Size = UDim2.fromScale(0, 1)
         end
@@ -2024,6 +1778,4 @@ table.insert(Cleanups, RunService.RenderStepped:Connect(function()
     end
 end))
 
-applyFullLanguage()
-print("[NEXUS SUPREME] Execution complete. Safe UI and Hooks loaded.")
-```eof
+print("[NEXUS SUPREME] Execution complete. Safe ASCII Engine Loaded.")
