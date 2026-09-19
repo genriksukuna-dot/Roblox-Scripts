@@ -156,6 +156,657 @@ local CONFIG = {
 -- SAFE GUI PARENT
 --=======================================================
 
+--=======================================================
+-- NEXUS LICENSE GATE
+--=======================================================
+
+local HttpService = game:GetService("HttpService")
+
+local LICENSE_API = "http://91.219.60.83/api/license/activate"
+local TELEGRAM_URL = "https://t.me/Nexus_injector"
+
+local licensePassed = false
+local licenseBusy = false
+
+local function getLicenseGuiParent()
+    local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if playerGui then
+        return playerGui
+    end
+
+    if typeof(gethui) == "function" then
+        local ok, hui = pcall(gethui)
+        if ok and hui then
+            return hui
+        end
+    end
+
+    return game:GetService("CoreGui")
+end
+
+local LICENSE_PARENT = getLicenseGuiParent()
+
+local oldLicenseGui = LICENSE_PARENT:FindFirstChild("Nexus_License_Gate")
+if oldLicenseGui then
+    oldLicenseGui:Destroy()
+end
+
+local LicenseGui = Instance.new("ScreenGui")
+LicenseGui.Name = "Nexus_License_Gate"
+LicenseGui.ResetOnSpawn = false
+LicenseGui.IgnoreGuiInset = true
+LicenseGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+LicenseGui.DisplayOrder = 1000000
+LicenseGui.Parent = LICENSE_PARENT
+
+local LicenseBackdrop = Instance.new("Frame")
+LicenseBackdrop.Size = UDim2.fromScale(1, 1)
+LicenseBackdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+LicenseBackdrop.BackgroundTransparency = 0.30
+LicenseBackdrop.BorderSizePixel = 0
+LicenseBackdrop.Parent = LicenseGui
+
+local LicenseMain = Instance.new("Frame")
+LicenseMain.AnchorPoint = Vector2.new(0.5, 0.5)
+LicenseMain.Position = UDim2.fromScale(0.5, 0.5)
+LicenseMain.Size = UDim2.new(0, 430, 0, 270)
+LicenseMain.BackgroundColor3 = Color3.fromRGB(5, 12, 25)
+LicenseMain.BorderSizePixel = 0
+LicenseMain.Parent = LicenseGui
+
+local LicenseCorner = Instance.new("UICorner")
+LicenseCorner.CornerRadius = UDim.new(0, 14)
+LicenseCorner.Parent = LicenseMain
+
+local LicenseStroke = Instance.new("UIStroke")
+LicenseStroke.Color = Color3.fromRGB(0, 150, 255)
+LicenseStroke.Thickness = 1.5
+LicenseStroke.Transparency = 0.15
+LicenseStroke.Parent = LicenseMain
+
+local LicenseGradient = Instance.new("UIGradient")
+LicenseGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(6, 19, 39)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(3, 9, 21)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 15, 31)),
+})
+LicenseGradient.Rotation = 90
+LicenseGradient.Parent = LicenseMain
+
+local LicenseTitle = Instance.new("TextLabel")
+LicenseTitle.BackgroundTransparency = 1
+LicenseTitle.Position = UDim2.new(0, 24, 0, 20)
+LicenseTitle.Size = UDim2.new(1, -48, 0, 32)
+LicenseTitle.Text = "NEXUS LICENSE"
+LicenseTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+LicenseTitle.TextSize = 22
+LicenseTitle.Font = Enum.Font.GothamBlack
+LicenseTitle.TextXAlignment = Enum.TextXAlignment.Center
+LicenseTitle.Parent = LicenseMain
+
+local LicenseSubtitle = Instance.new("TextLabel")
+LicenseSubtitle.BackgroundTransparency = 1
+LicenseSubtitle.Position = UDim2.new(0, 28, 0, 55)
+LicenseSubtitle.Size = UDim2.new(1, -56, 0, 24)
+LicenseSubtitle.Text = "ENTER YOUR LICENSE KEY"
+LicenseSubtitle.TextColor3 = Color3.fromRGB(112, 151, 196)
+LicenseSubtitle.TextSize = 10
+LicenseSubtitle.Font = Enum.Font.GothamBold
+LicenseSubtitle.TextXAlignment = Enum.TextXAlignment.Center
+LicenseSubtitle.Parent = LicenseMain
+
+local KeyBox = Instance.new("TextBox")
+KeyBox.Position = UDim2.new(0, 30, 0, 94)
+KeyBox.Size = UDim2.new(1, -60, 0, 48)
+KeyBox.BackgroundColor3 = Color3.fromRGB(3, 16, 32)
+KeyBox.BorderSizePixel = 0
+KeyBox.ClearTextOnFocus = false
+KeyBox.PlaceholderText = "NX-XXXX-XXXX-XXXX"
+KeyBox.PlaceholderColor3 = Color3.fromRGB(70, 105, 145)
+KeyBox.Text = ""
+KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyBox.TextSize = 14
+KeyBox.Font = Enum.Font.GothamBold
+KeyBox.TextXAlignment = Enum.TextXAlignment.Center
+KeyBox.Parent = LicenseMain
+
+local KeyCorner = Instance.new("UICorner")
+KeyCorner.CornerRadius = UDim.new(0, 10)
+KeyCorner.Parent = KeyBox
+
+local KeyStroke = Instance.new("UIStroke")
+KeyStroke.Color = Color3.fromRGB(16, 86, 140)
+KeyStroke.Thickness = 1
+KeyStroke.Parent = KeyBox
+
+local LicenseError = Instance.new("TextLabel")
+LicenseError.BackgroundTransparency = 1
+LicenseError.Position = UDim2.new(0, 30, 0, 146)
+LicenseError.Size = UDim2.new(1, -60, 0, 22)
+LicenseError.Text = ""
+LicenseError.TextColor3 = Color3.fromRGB(255, 75, 95)
+LicenseError.TextSize = 10
+LicenseError.Font = Enum.Font.GothamBold
+LicenseError.TextXAlignment = Enum.TextXAlignment.Center
+LicenseError.Parent = LicenseMain
+
+-- Server-returned license information.
+local LicenseInfoFrame = Instance.new("Frame")
+LicenseInfoFrame.Position = UDim2.new(0, 30, 0, 168)
+LicenseInfoFrame.Size = UDim2.new(1, -60, 0, 44)
+LicenseInfoFrame.BackgroundColor3 = Color3.fromRGB(4, 18, 34)
+LicenseInfoFrame.BackgroundTransparency = 0.15
+LicenseInfoFrame.BorderSizePixel = 0
+LicenseInfoFrame.Visible = false
+LicenseInfoFrame.Parent = LicenseMain
+
+local LicenseInfoCorner = Instance.new("UICorner")
+LicenseInfoCorner.CornerRadius = UDim.new(0, 8)
+LicenseInfoCorner.Parent = LicenseInfoFrame
+
+local LicenseInfoStroke = Instance.new("UIStroke")
+LicenseInfoStroke.Color = Color3.fromRGB(0, 120, 210)
+LicenseInfoStroke.Transparency = 0.45
+LicenseInfoStroke.Parent = LicenseInfoFrame
+
+local ExperienceLabel = Instance.new("TextLabel")
+ExperienceLabel.BackgroundTransparency = 1
+ExperienceLabel.Position = UDim2.new(0, 10, 0, 3)
+ExperienceLabel.Size = UDim2.new(1, -20, 0, 18)
+ExperienceLabel.Text = "EXPERIENCE: --"
+ExperienceLabel.TextColor3 = Color3.fromRGB(125, 195, 255)
+ExperienceLabel.TextSize = 9
+ExperienceLabel.Font = Enum.Font.GothamBold
+ExperienceLabel.TextXAlignment = Enum.TextXAlignment.Left
+ExperienceLabel.Parent = LicenseInfoFrame
+
+local ExpirationLabel = Instance.new("TextLabel")
+ExpirationLabel.BackgroundTransparency = 1
+ExpirationLabel.Position = UDim2.new(0, 10, 0, 21)
+ExpirationLabel.Size = UDim2.new(1, -20, 0, 18)
+ExpirationLabel.Text = "EXPIRES: --"
+ExpirationLabel.TextColor3 = Color3.fromRGB(215, 232, 255)
+ExpirationLabel.TextSize = 9
+ExpirationLabel.Font = Enum.Font.GothamMedium
+ExpirationLabel.TextXAlignment = Enum.TextXAlignment.Left
+ExpirationLabel.Parent = LicenseInfoFrame
+
+local GetKeyButton = Instance.new("TextButton")
+GetKeyButton.Position = UDim2.new(0, 30, 1, -56)
+GetKeyButton.Size = UDim2.fromOffset(150, 40)
+GetKeyButton.BackgroundColor3 = Color3.fromRGB(20, 35, 58)
+GetKeyButton.BorderSizePixel = 0
+GetKeyButton.Text = "GET THE KEY"
+GetKeyButton.TextColor3 = Color3.fromRGB(130, 200, 255)
+GetKeyButton.TextSize = 10
+GetKeyButton.Font = Enum.Font.GothamBold
+GetKeyButton.AutoButtonColor = false
+GetKeyButton.Parent = LicenseMain
+
+local GetKeyCorner = Instance.new("UICorner")
+GetKeyCorner.CornerRadius = UDim.new(0, 9)
+GetKeyCorner.Parent = GetKeyButton
+
+local GetKeyStroke = Instance.new("UIStroke")
+GetKeyStroke.Color = Color3.fromRGB(30, 130, 220)
+GetKeyStroke.Transparency = 0.25
+GetKeyStroke.Parent = GetKeyButton
+
+local LoadKeyButton = Instance.new("TextButton")
+LoadKeyButton.Position = UDim2.new(1, -180, 1, -56)
+LoadKeyButton.Size = UDim2.fromOffset(150, 40)
+LoadKeyButton.BackgroundColor3 = Color3.fromRGB(0, 180, 135)
+LoadKeyButton.BorderSizePixel = 0
+LoadKeyButton.Text = "LOAD KEY"
+LoadKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadKeyButton.TextSize = 10
+LoadKeyButton.Font = Enum.Font.GothamBold
+LoadKeyButton.AutoButtonColor = false
+LoadKeyButton.Parent = LicenseMain
+
+local LoadKeyCorner = Instance.new("UICorner")
+LoadKeyCorner.CornerRadius = UDim.new(0, 9)
+LoadKeyCorner.Parent = LoadKeyButton
+
+local LoadKeyStroke = Instance.new("UIStroke")
+LoadKeyStroke.Color = Color3.fromRGB(0, 255, 170)
+LoadKeyStroke.Transparency = 0.25
+LoadKeyStroke.Parent = LoadKeyButton
+
+--=======================================================
+-- TOP-RIGHT TELEGRAM POPUP
+--=======================================================
+
+local CopyNotice = Instance.new("Frame")
+CopyNotice.AnchorPoint = Vector2.new(1, 0)
+CopyNotice.Position = UDim2.new(1, 390, 0, 18)
+CopyNotice.Size = UDim2.fromOffset(370, 92)
+CopyNotice.BackgroundColor3 = Color3.fromRGB(20, 23, 34)
+CopyNotice.BackgroundTransparency = 1
+CopyNotice.BorderSizePixel = 0
+CopyNotice.ZIndex = 100
+CopyNotice.Parent = LicenseGui
+
+local CopyCorner = Instance.new("UICorner")
+CopyCorner.CornerRadius = UDim.new(0, 13)
+CopyCorner.Parent = CopyNotice
+
+local CopyStroke = Instance.new("UIStroke")
+CopyStroke.Color = Color3.fromRGB(35, 160, 255)
+CopyStroke.Thickness = 1.5
+CopyStroke.Transparency = 1
+CopyStroke.Parent = CopyNotice
+
+local CopyTitle = Instance.new("TextLabel")
+CopyTitle.BackgroundTransparency = 1
+CopyTitle.Position = UDim2.new(0, 16, 0, 11)
+CopyTitle.Size = UDim2.new(1, -32, 0, 20)
+CopyTitle.Text = "TELEGRAM COPIED ✓"
+CopyTitle.TextColor3 = Color3.fromRGB(125, 195, 255)
+CopyTitle.TextSize = 11
+CopyTitle.Font = Enum.Font.GothamBold
+CopyTitle.TextXAlignment = Enum.TextXAlignment.Left
+CopyTitle.TextTransparency = 1
+CopyTitle.ZIndex = 101
+CopyTitle.Parent = CopyNotice
+
+local CopyText = Instance.new("TextLabel")
+CopyText.BackgroundTransparency = 1
+CopyText.Position = UDim2.new(0, 16, 0, 35)
+CopyText.Size = UDim2.new(1, -32, 0, 45)
+CopyText.Text = "The link to the Telegram channel where you can get the key has been copied."
+CopyText.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyText.TextSize = 10
+CopyText.Font = Enum.Font.GothamMedium
+CopyText.TextWrapped = true
+CopyText.TextXAlignment = Enum.TextXAlignment.Left
+CopyText.TextYAlignment = Enum.TextYAlignment.Top
+CopyText.TextTransparency = 1
+CopyText.ZIndex = 101
+CopyText.Parent = CopyNotice
+
+local function showLicenseCopyNotice()
+    CopyNotice.Position = UDim2.new(1, 390, 0, 18)
+    CopyNotice.BackgroundTransparency = 1
+    CopyStroke.Transparency = 1
+    CopyTitle.TextTransparency = 1
+    CopyText.TextTransparency = 1
+
+    TweenService:Create(
+        CopyNotice,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+        {
+            Position = UDim2.new(1, -18, 0, 18),
+            BackgroundTransparency = 0.04
+        }
+    ):Play()
+
+    TweenService:Create(
+        CopyStroke,
+        TweenInfo.new(0.25),
+        {Transparency = 0.08}
+    ):Play()
+
+    TweenService:Create(
+        CopyTitle,
+        TweenInfo.new(0.25),
+        {TextTransparency = 0}
+    ):Play()
+
+    TweenService:Create(
+        CopyText,
+        TweenInfo.new(0.30),
+        {TextTransparency = 0}
+    ):Play()
+
+    task.delay(4.5, function()
+        if not CopyNotice.Parent then
+            return
+        end
+
+        TweenService:Create(
+            CopyNotice,
+            TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+            {
+                Position = UDim2.new(1, 390, 0, 18),
+                BackgroundTransparency = 1
+            }
+        ):Play()
+
+        TweenService:Create(
+            CopyStroke,
+            TweenInfo.new(0.2),
+            {Transparency = 1}
+        ):Play()
+
+        TweenService:Create(
+            CopyTitle,
+            TweenInfo.new(0.2),
+            {TextTransparency = 1}
+        ):Play()
+
+        TweenService:Create(
+            CopyText,
+            TweenInfo.new(0.2),
+            {TextTransparency = 1}
+        ):Play()
+    end)
+end
+
+--=======================================================
+-- REQUEST FUNCTION
+--=======================================================
+
+local function getRequestFunction()
+    local env
+
+    pcall(function()
+        if getgenv then
+            env = getgenv()
+        end
+    end)
+
+    env = env or _G
+
+    if type(env.request) == "function" then
+        return env.request
+    end
+
+    if type(env.http_request) == "function" then
+        return env.http_request
+    end
+
+    if type(request) == "function" then
+        return request
+    end
+
+    if type(http_request) == "function" then
+        return http_request
+    end
+
+    if syn and type(syn.request) == "function" then
+        return syn.request
+    end
+
+    return nil
+end
+
+local function formatExperience(value)
+    if value == nil then
+        return "--"
+    end
+
+    if type(value) == "table" then
+        local amount = value.value or value.amount or value.duration or value.days or value.hours or value.seconds
+        local unit = value.unit or value.type or value.period
+        if amount ~= nil then
+            return tostring(amount) .. (unit and (" " .. tostring(unit)) or "")
+        end
+        return "ACTIVE"
+    end
+
+    local text = tostring(value)
+    if text == "" then
+        return "--"
+    end
+    return text
+end
+
+local function formatExpiration(value)
+    if value == nil then
+        return "--"
+    end
+
+    if type(value) == "number" then
+        local timestamp = value
+        if timestamp > 100000000000 then
+            timestamp = math.floor(timestamp / 1000)
+        end
+
+        if timestamp > 0 then
+            local ok, result = pcall(function()
+                return os.date("!%Y-%m-%d %H:%M:%S UTC", timestamp)
+            end)
+            if ok and result then
+                return result
+            end
+        end
+
+        return tostring(value)
+    end
+
+    local text = tostring(value)
+    if text == "" then
+        return "--"
+    end
+
+    return text
+end
+
+local function findLicenseValue(data, names)
+    if type(data) ~= "table" then
+        return nil
+    end
+
+    local wanted = {}
+    for _, name in ipairs(names) do
+        wanted[string.lower(name)] = true
+    end
+
+    local visited = {}
+    local function scan(tbl, depth)
+        if type(tbl) ~= "table" or depth > 4 or visited[tbl] then
+            return nil
+        end
+
+        visited[tbl] = true
+
+        for key, value in pairs(tbl) do
+            if wanted[string.lower(tostring(key))] then
+                return value
+            end
+        end
+
+        for _, value in pairs(tbl) do
+            if type(value) == "table" then
+                local found = scan(value, depth + 1)
+                if found ~= nil then
+                    return found
+                end
+            end
+        end
+
+        return nil
+    end
+
+    return scan(data, 0)
+end
+
+local function updateLicenseInfo(data)
+    local experience = findLicenseValue(data, {
+        "experience",
+        "duration",
+        "duration_text",
+        "duration_days",
+        "duration_hours",
+        "duration_seconds",
+        "expires_in",
+        "remaining",
+        "valid_for",
+    })
+
+    local expiration = findLicenseValue(data, {
+        "expires_at",
+        "expiresAt",
+        "expiration",
+        "expiration_date",
+        "expirationDate",
+        "expires",
+        "expiry",
+        "ends_at",
+        "end_time",
+    })
+
+    ExperienceLabel.Text = "EXPERIENCE: " .. formatExperience(experience)
+    ExpirationLabel.Text = "EXPIRES: " .. formatExpiration(expiration)
+    LicenseInfoFrame.Visible = true
+end
+
+local function activateLicense(key)
+    local requestFn = getRequestFunction()
+
+    if not requestFn then
+        return false, "HTTP request is not supported"
+    end
+
+    local deviceId = "ROBLOX-" .. tostring(LocalPlayer.UserId)
+
+    local ok, response = pcall(function()
+        return requestFn({
+            Url = LICENSE_API,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode({
+                key = key,
+                user_id = deviceId
+            })
+        })
+    end)
+
+    if not ok or type(response) ~= "table" then
+        return false, "Connection error"
+    end
+
+    local statusCode = tonumber(response.StatusCode or response.status_code or 0)
+    local body = response.Body or response.body or ""
+
+    local data
+    pcall(function()
+        data = HttpService:JSONDecode(body)
+    end)
+
+    if statusCode >= 200 and statusCode < 300 and data and data.success then
+        return true, data
+    end
+
+    if data and data.error then
+        return false, tostring(data.error)
+    end
+
+    return false, "License verification failed"
+end
+
+GetKeyButton.Activated:Connect(function()
+    if typeof(setclipboard) == "function" then
+        pcall(function()
+            setclipboard(TELEGRAM_URL)
+        end)
+    end
+
+    showLicenseCopyNotice()
+end)
+
+GetKeyButton.MouseEnter:Connect(function()
+    TweenService:Create(
+        GetKeyButton,
+        TweenInfo.new(0.12),
+        {BackgroundColor3 = Color3.fromRGB(28, 52, 82)}
+    ):Play()
+end)
+
+GetKeyButton.MouseLeave:Connect(function()
+    TweenService:Create(
+        GetKeyButton,
+        TweenInfo.new(0.12),
+        {BackgroundColor3 = Color3.fromRGB(20, 35, 58)}
+    ):Play()
+end)
+
+LoadKeyButton.MouseEnter:Connect(function()
+    TweenService:Create(
+        LoadKeyButton,
+        TweenInfo.new(0.12),
+        {BackgroundColor3 = Color3.fromRGB(0, 220, 160)}
+    ):Play()
+end)
+
+LoadKeyButton.MouseLeave:Connect(function()
+    TweenService:Create(
+        LoadKeyButton,
+        TweenInfo.new(0.12),
+        {BackgroundColor3 = Color3.fromRGB(0, 180, 135)}
+    ):Play()
+end)
+
+LoadKeyButton.Activated:Connect(function()
+    if licenseBusy then
+        return
+    end
+
+    local key = tostring(KeyBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+
+    LicenseError.Text = ""
+    LicenseInfoFrame.Visible = false
+    ExperienceLabel.Text = "EXPERIENCE: --"
+    ExpirationLabel.Text = "EXPIRES: --"
+
+    if key == "" then
+        LicenseError.Text = "ENTER LICENSE KEY"
+        return
+    end
+
+    licenseBusy = true
+    LoadKeyButton.Text = "CHECKING..."
+
+    local ok, result = activateLicense(key)
+
+    if ok then
+        updateLicenseInfo(result)
+        LoadKeyButton.Text = "VALID"
+
+        task.wait(1.10)
+
+        licensePassed = true
+
+        TweenService:Create(
+            LicenseMain,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+            {
+                Size = UDim2.new(0, 430, 0, 20)
+            }
+        ):Play()
+
+        TweenService:Create(
+            LicenseBackdrop,
+            TweenInfo.new(0.25),
+            {
+                BackgroundTransparency = 1
+            }
+        ):Play()
+
+        task.wait(0.28)
+
+        if LicenseGui and LicenseGui.Parent then
+            LicenseGui:Destroy()
+        end
+    else
+        LoadKeyButton.Text = "LOAD KEY"
+        LicenseError.Text = tostring(result)
+    end
+
+    licenseBusy = false
+end)
+
+--=======================================================
+-- WAIT FOR VALID LICENSE
+--=======================================================
+
+repeat
+    task.wait()
+until licensePassed
+
 local function getSafeGui()
     local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
     if playerGui then
