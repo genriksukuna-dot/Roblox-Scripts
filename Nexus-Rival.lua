@@ -155,12 +155,41 @@ local PaletteSwatches = {
     Color3.fromRGB(255, 220, 40), Color3.fromRGB(185, 75, 255), Color3.fromRGB(255, 255, 255)
 }
 
---// PURE TEAM CHECK (BLOCK STRIKE LOGIC)
+--// SMART TEAM CHECK (EXACTLY FROM YOUR BLOCK STRIKE SCRIPT)
 local function isTeammate(p)
     if not p or p == LocalPlayer then return true end
-    if LocalPlayer.Team and p.Team and LocalPlayer.Team == p.Team then
-        return true
+    
+    if LocalPlayer.Team and p.Team then
+        if LocalPlayer.Team == p.Team then return true end
+        if LocalPlayer.Team.Name ~= "" and LocalPlayer.Team.Name == p.Team.Name then return true end
     end
+    
+    if LocalPlayer.TeamColor and p.TeamColor then
+        local myCol = LocalPlayer.TeamColor.Name
+        local pCol = p.TeamColor.Name
+        if myCol ~= "White" and myCol ~= "Medium stone grey" and myCol == pCol then return true end
+        if not LocalPlayer.Neutral and not p.Neutral and LocalPlayer.TeamColor == p.TeamColor then return true end
+    end
+    
+    local myTeamAttr = LocalPlayer:GetAttribute("Team") or (LocalPlayer.Character and LocalPlayer.Character:GetAttribute("Team"))
+    local pTeamAttr = p:GetAttribute("Team") or (p.Character and p.Character:GetAttribute("Team"))
+    if myTeamAttr and pTeamAttr and myTeamAttr ~= "" then
+        return tostring(myTeamAttr) == tostring(pTeamAttr)
+    end
+    
+    for _, src in ipairs({LocalPlayer, LocalPlayer.Character}) do
+        if src then
+            local tVal = src:FindFirstChild("Team") or src:FindFirstChild("TeamValue") or src:FindFirstChild("TeamName")
+            local pSrc = p.Character or p
+            local ptVal = pSrc and (pSrc:FindFirstChild("Team") or pSrc:FindFirstChild("TeamValue") or pSrc:FindFirstChild("TeamName"))
+            if tVal and ptVal then
+                local v1 = (tVal:IsA("ValueBase") and tVal.Value) or tVal.Name
+                local v2 = (ptVal:IsA("ValueBase") and ptVal.Value) or ptVal.Name
+                if v1 and v2 and v1 == v2 and v1 ~= "" then return true end
+            end
+        end
+    end
+    
     return false
 end
 
@@ -1005,12 +1034,8 @@ RunService:BindToRenderStep("NexusAimEngine", Enum.RenderPriority.Camera.Value +
     if Config.Aimbot.DrawFOV and FOVCircleFrame then
         FOVCircleFrame.Visible = true
         FOVCircleFrame.Position = UDim2.fromOffset(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        if Config.Settings.RainbowFOV then
-            local hue = (os.clock() * 0.4) % 1
-            FOVStroke.Color = Color3.fromHSV(hue, 0.85, 1)
-        else
-            FOVStroke.Color = CurrentTheme.Accent
-        end
+        local hue = (os.clock() * 0.4) % 1
+        if Config.Settings.RainbowFOV then FOVStroke.Color = Color3.fromHSV(hue, 0.85, 1) else FOVStroke.Color = CurrentTheme.Accent end
     elseif FOVCircleFrame then
         FOVCircleFrame.Visible = false
     end
