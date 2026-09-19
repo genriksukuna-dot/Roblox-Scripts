@@ -1,5 +1,5 @@
 --//======================================================
---// NEXUS TACTICAL HUB - FIXED
+--// NEXUS TACTICAL HUB - CREDITS + TELEGRAM COPY NOTIFICATION
 --//
 --// Fixes:
 --//  • Load Script button is actually created
@@ -184,20 +184,20 @@ end
 --=======================================================
 
 local COLORS = {
-    Background = Color3.fromRGB(8, 9, 15),
-    Panel = Color3.fromRGB(13, 15, 23),
-    Header = Color3.fromRGB(17, 19, 29),
-    Card = Color3.fromRGB(19, 21, 32),
-    CardHover = Color3.fromRGB(24, 27, 41),
-    Border = Color3.fromRGB(42, 46, 68),
-    BorderSoft = Color3.fromRGB(31, 34, 52),
+    Background = Color3.fromRGB(3, 8, 18),
+    Panel = Color3.fromRGB(5, 12, 25),
+    Header = Color3.fromRGB(4, 11, 24),
+    Card = Color3.fromRGB(7, 17, 34),
+    CardHover = Color3.fromRGB(9, 28, 52),
+    Border = Color3.fromRGB(0, 112, 205),
+    BorderSoft = Color3.fromRGB(16, 54, 92),
     White = Color3.fromRGB(255, 255, 255),
-    Text = Color3.fromRGB(225, 228, 238),
-    Muted = Color3.fromRGB(145, 150, 175),
-    DarkText = Color3.fromRGB(95, 100, 125),
+    Text = Color3.fromRGB(215, 232, 255),
+    Muted = Color3.fromRGB(112, 151, 196),
+    DarkText = Color3.fromRGB(57, 91, 130),
     Green = Color3.fromRGB(55, 240, 140),
     Red = Color3.fromRGB(255, 75, 95),
-    Sidebar = Color3.fromRGB(11, 13, 20),
+    Sidebar = Color3.fromRGB(3, 10, 21),
 }
 
 --=======================================================
@@ -344,36 +344,115 @@ local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.AnchorPoint = Vector2.new(0.5, 0.5)
 Main.Position = UDim2.fromScale(0.5, 0.5)
-Main.Size = UDim2.new(0.90, 0, 0.86, 0)
+Main.Size = UDim2.new(0.92, 0, 0.88, 0)
 Main.BackgroundColor3 = COLORS.Panel
 Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
 Main.Active = true
 Main.Parent = ScreenGui
-round(Main, 16)
+round(Main, 12)
 
 local MainScale = Instance.new("UIScale")
 MainScale.Scale = 1
 MainScale.Parent = Main
 stroke(Main, COLORS.Border, 1)
 
+local MainGlow = Instance.new("UIStroke")
+MainGlow.Color = Color3.fromRGB(0, 128, 255)
+MainGlow.Thickness = 2
+MainGlow.Transparency = 0.72
+MainGlow.Parent = Main
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 15, 31)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(3, 9, 21)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(4, 13, 28)),
+})
+MainGradient.Rotation = 90
+MainGradient.Parent = Main
+
+--=======================================================
+-- ELECTRIC BLUE LIGHTNING DECOR
+--=======================================================
+-- Clean, connected lightning glyphs. These are decorative-only and sit in
+-- the empty header/footer areas, never over interactive controls.
+local function addNeonLightning(parent, xScale, yOffset, size, rotation, zIndex)
+    local holder = Instance.new("Frame")
+    holder.Name = "NeonLightning"
+    holder.AnchorPoint = Vector2.new(0.5, 0)
+    holder.Position = UDim2.new(xScale, 0, 0, yOffset)
+    holder.Size = UDim2.fromOffset(size, math.floor(size * 1.20))
+    holder.BackgroundTransparency = 1
+    holder.BorderSizePixel = 0
+    holder.Active = false
+    holder.ZIndex = zIndex or 6
+    holder.Rotation = rotation or 0
+    holder.Parent = parent
+
+    -- Soft electric glow.
+    local glow = createText(holder, "ϟ", math.floor(size * 1.05), Color3.fromRGB(0, 105, 255), Enum.Font.GothamBlack, Enum.TextXAlignment.Center)
+    glow.Size = UDim2.fromScale(1, 1)
+    glow.Position = UDim2.fromScale(0, 0)
+    glow.TextStrokeColor3 = Color3.fromRGB(0, 60, 255)
+    glow.TextStrokeTransparency = 0.45
+    glow.TextTransparency = 0.18
+    glow.ZIndex = (zIndex or 6)
+
+    -- Bright core.
+    local core = createText(holder, "ϟ", math.floor(size * 0.88), Color3.fromRGB(35, 195, 255), Enum.Font.GothamBlack, Enum.TextXAlignment.Center)
+    core.Size = UDim2.fromScale(1, 1)
+    core.Position = UDim2.fromOffset(0, -1)
+    core.TextStrokeColor3 = Color3.fromRGB(160, 235, 255)
+    core.TextStrokeTransparency = 0.30
+    core.ZIndex = (zIndex or 6) + 1
+
+    return holder
+end
+
 --=======================================================
 -- HEADER
 --=======================================================
 
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 72)
+Header.Size = UDim2.new(1, 0, 0, 74)
 Header.BackgroundColor3 = COLORS.Header
 Header.BorderSizePixel = 0
 Header.ZIndex = 10
 Header.Parent = Main
 
-local Title = createText(Header, "NEXUS TACTICAL HUB", 21, COLORS.White, Enum.Font.GothamBold)
+local HeaderGradient = Instance.new("UIGradient")
+HeaderGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(4, 15, 33)),
+    ColorSequenceKeypoint.new(0.55, Color3.fromRGB(3, 9, 20)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 19, 39)),
+})
+HeaderGradient.Rotation = 0
+HeaderGradient.Parent = Header
+
+local HeaderElectricLine = Instance.new("Frame")
+HeaderElectricLine.Position = UDim2.new(0, 22, 1, -2)
+HeaderElectricLine.Size = UDim2.new(1, -44, 0, 2)
+HeaderElectricLine.BackgroundColor3 = Color3.fromRGB(20, 120, 255)
+HeaderElectricLine.BackgroundTransparency = 0.42
+HeaderElectricLine.BorderSizePixel = 0
+HeaderElectricLine.ZIndex = 11
+HeaderElectricLine.Parent = Header
+
+local HeaderElectricGlow = Instance.new("UIGradient")
+HeaderElectricGlow.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 70, 180)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(45, 190, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 70, 180)),
+})
+HeaderElectricGlow.Parent = HeaderElectricLine
+
+local Title = createText(Header, "NEXUS TACTICAL HUB", 23, COLORS.White, Enum.Font.GothamBlack)
 Title.Position = UDim2.new(0, 22, 0, 10)
 Title.Size = UDim2.new(0, 320, 0, 26)
 Title.ZIndex = 11
 
-local Subtitle = createText(Header, "GAME LIBRARY  •  TACTICAL INTERFACE", 11, COLORS.Muted, Enum.Font.GothamMedium)
+local Subtitle = createText(Header, "GAME LIBRARY  •  TACTICAL INTERFACE", 10, COLORS.Muted, Enum.Font.GothamBold)
 Subtitle.Position = UDim2.new(0, 23, 0, 38)
 Subtitle.Size = UDim2.new(0, 360, 0, 18)
 Subtitle.ZIndex = 11
@@ -433,18 +512,26 @@ round(CloseButton, 10)
 --=======================================================
 
 local Body = Instance.new("Frame")
-Body.Position = UDim2.new(0, 0, 0, 72)
-Body.Size = UDim2.new(1, 0, 1, -132)
+Body.Position = UDim2.new(0, 0, 0, 74)
+Body.Size = UDim2.new(1, 0, 1, -134)
 Body.BackgroundTransparency = 1
 Body.ZIndex = 2
 Body.Parent = Main
 
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 185, 1, 0)
+Sidebar.Size = UDim2.new(0, 210, 1, 0)
 Sidebar.BackgroundColor3 = COLORS.Sidebar
 Sidebar.BorderSizePixel = 0
 Sidebar.ZIndex = 3
 Sidebar.Parent = Body
+
+local SidebarGradient = Instance.new("UIGradient")
+SidebarGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(3, 13, 27)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(2, 7, 16)),
+})
+SidebarGradient.Rotation = 90
+SidebarGradient.Parent = Sidebar
 
 local SideTitle = createText(Sidebar, "LIBRARY", 11, COLORS.Muted, Enum.Font.GothamBold)
 SideTitle.Position = UDim2.new(0, 18, 0, 18)
@@ -465,7 +552,7 @@ local function createSidebarButton(name, text, y)
     Button.Name = name
     Button.Position = UDim2.new(0, 12, 0, y)
     Button.Size = UDim2.new(1, -24, 0, 42)
-    Button.BackgroundColor3 = Color3.fromRGB(17, 19, 28)
+    Button.BackgroundColor3 = Color3.fromRGB(5, 18, 35)
     Button.Text = ""
     Button.AutoButtonColor = false
     Button.ZIndex = 4
@@ -475,7 +562,7 @@ local function createSidebarButton(name, text, y)
     local indicator = Instance.new("Frame")
     indicator.Size = UDim2.fromOffset(3, 18)
     indicator.Position = UDim2.new(0, 0, 0.5, -9)
-    indicator.BackgroundColor3 = Color3.fromRGB(0, 235, 255)
+    indicator.BackgroundColor3 = Color3.fromRGB(25, 170, 255)
     indicator.BorderSizePixel = 0
     indicator.Visible = false
     indicator.ZIndex = 5
@@ -497,7 +584,7 @@ local ShuterButton = createSidebarButton("Shuter", "SHUTER", 110)
 local SearchBox = Instance.new("Frame")
 SearchBox.Position = UDim2.new(0, 12, 1, -62)
 SearchBox.Size = UDim2.new(1, -24, 0, 44)
-SearchBox.BackgroundColor3 = Color3.fromRGB(17, 19, 29)
+SearchBox.BackgroundColor3 = Color3.fromRGB(4, 16, 31)
 SearchBox.BorderSizePixel = 0
 SearchBox.ZIndex = 4
 SearchBox.Parent = Sidebar
@@ -523,12 +610,405 @@ Search.ZIndex = 5
 Search.Parent = SearchBox
 
 --=======================================================
+-- TELEGRAM COPY NOTIFICATION
+--=======================================================
+local function showTelegramNotice(label)
+    local Notice = Instance.new("Frame")
+    Notice.Name = "TelegramCopyNotice"
+    Notice.AnchorPoint = Vector2.new(1, 0)
+    Notice.Position = UDim2.new(1, 340, 0, 18)
+    Notice.Size = UDim2.fromOffset(326, 78)
+    Notice.BackgroundColor3 = Color3.fromRGB(20, 23, 34)
+    Notice.BackgroundTransparency = 1
+    Notice.BorderSizePixel = 0
+    Notice.ZIndex = 200
+    Notice.Parent = Main
+    round(Notice, 13)
+    local NoticeStroke = stroke(Notice, Color3.fromRGB(180, 90, 255), 1.6, 1)
+
+    local Accent = Instance.new("Frame")
+    Accent.Size = UDim2.new(0, 4, 1, 0)
+    Accent.BackgroundColor3 = Color3.fromRGB(180, 90, 255)
+    Accent.BackgroundTransparency = 1
+    Accent.BorderSizePixel = 0
+    Accent.ZIndex = 201
+    Accent.Parent = Notice
+    round(Accent, 13)
+
+    local Title = createText(Notice, "TELEGRAM COPIED ✓", 11, Color3.fromRGB(225, 190, 255), Enum.Font.GothamBold)
+    Title.Position = UDim2.new(0, 17, 0, 10)
+    Title.Size = UDim2.new(1, -30, 0, 18)
+    Title.TextTransparency = 1
+    Title.ZIndex = 202
+
+    local BodyText = createText(Notice,
+        "Telegram " .. label .. " copied.\nPaste it into your browser to open the profile.",
+        10, COLORS.White, Enum.Font.GothamMedium)
+    BodyText.Position = UDim2.new(0, 17, 0, 31)
+    BodyText.Size = UDim2.new(1, -30, 0, 38)
+    BodyText.TextWrapped = true
+    BodyText.TextYAlignment = Enum.TextYAlignment.Top
+    BodyText.TextTransparency = 1
+    BodyText.ZIndex = 202
+
+    tween(Notice, {Position = UDim2.new(1, -18, 0, 18), BackgroundTransparency = 0.04}, 0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+    tween(NoticeStroke, {Transparency = 0.08}, 0.35):Play()
+    tween(Accent, {BackgroundTransparency = 0}, 0.25):Play()
+    tween(Title, {TextTransparency = 0}, 0.28):Play()
+    tween(BodyText, {TextTransparency = 0}, 0.32):Play()
+
+    task.delay(4.5, function()
+        if not Notice or not Notice.Parent then return end
+        tween(Notice, {Position = UDim2.new(1, 340, 0, 18), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In):Play()
+        tween(NoticeStroke, {Transparency = 1}, 0.25):Play()
+        tween(Accent, {BackgroundTransparency = 1}, 0.2):Play()
+        tween(Title, {TextTransparency = 1}, 0.2):Play()
+        tween(BodyText, {TextTransparency = 1}, 0.2):Play()
+        task.wait(0.35)
+        if Notice then Notice:Destroy() end
+    end)
+end
+
+--=======================================================
+-- CREDITS AREA
+--=======================================================
+
+local CreditsArea = Instance.new("Frame")
+CreditsArea.Position = UDim2.new(0, 210, 0, 0)
+CreditsArea.Size = UDim2.new(1, -210, 1, 0)
+CreditsArea.BackgroundTransparency = 1
+CreditsArea.Visible = false
+CreditsArea.ZIndex = 20
+CreditsArea.Parent = Body
+
+local CreditsScroll = Instance.new("ScrollingFrame")
+CreditsScroll.Position = UDim2.new(0, 17, 0, 17)
+CreditsScroll.Size = UDim2.new(1, -34, 1, -34)
+CreditsScroll.BackgroundTransparency = 1
+CreditsScroll.BorderSizePixel = 0
+CreditsScroll.ScrollBarThickness = 4
+CreditsScroll.ScrollBarImageColor3 = COLORS.Border
+CreditsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+CreditsScroll.ZIndex = 21
+CreditsScroll.Parent = CreditsArea
+
+local CreditsPadding = Instance.new("UIPadding")
+CreditsPadding.PaddingBottom = UDim.new(0, 16)
+CreditsPadding.Parent = CreditsScroll
+
+local CreditsTitle = createText(CreditsScroll, "NEXUS CREDITS", 22, COLORS.White, Enum.Font.GothamBold)
+CreditsTitle.Position = UDim2.new(0, 8, 0, 8)
+CreditsTitle.Size = UDim2.new(1, -16, 0, 30)
+CreditsTitle.ZIndex = 22
+
+local CreditsSubtitle = createText(CreditsScroll, "PROJECT TEAM", 10, COLORS.Muted, Enum.Font.GothamBold)
+CreditsSubtitle.Position = UDim2.new(0, 9, 0, 40)
+CreditsSubtitle.Size = UDim2.new(1, -18, 0, 18)
+CreditsSubtitle.ZIndex = 22
+
+local function showChannelNotice()
+    local Notice = Instance.new("Frame")
+    Notice.Name = "NexusChannelCopyNotice"
+    Notice.AnchorPoint = Vector2.new(1, 0)
+    Notice.Position = UDim2.new(1, 340, 0, 18)
+    Notice.Size = UDim2.fromOffset(342, 88)
+    Notice.BackgroundColor3 = Color3.fromRGB(20, 23, 34)
+    Notice.BackgroundTransparency = 1
+    Notice.BorderSizePixel = 0
+    Notice.ZIndex = 300
+    Notice.Parent = Main
+    round(Notice, 14)
+    local NoticeStroke = stroke(Notice, Color3.fromRGB(35, 160, 255), 1.8, 1)
+
+    local Accent = Instance.new("Frame")
+    Accent.Size = UDim2.new(0, 4, 1, 0)
+    Accent.BackgroundColor3 = Color3.fromRGB(35, 160, 255)
+    Accent.BackgroundTransparency = 1
+    Accent.BorderSizePixel = 0
+    Accent.ZIndex = 301
+    Accent.Parent = Notice
+    round(Accent, 14)
+
+    local Title = createText(Notice, "TELEGRAM COPIED ✓", 12, Color3.fromRGB(125, 195, 255), Enum.Font.GothamBold)
+    Title.Position = UDim2.new(0, 18, 0, 9)
+    Title.Size = UDim2.new(1, -30, 0, 20)
+    Title.TextTransparency = 1
+    Title.ZIndex = 302
+
+    local BodyText = createText(Notice,
+        "Telegram copied.\nPaste it into your browser, then press Search.",
+        10, COLORS.White, Enum.Font.GothamMedium)
+    BodyText.Position = UDim2.new(0, 18, 0, 33)
+    BodyText.Size = UDim2.new(1, -30, 0, 42)
+    BodyText.TextWrapped = true
+    BodyText.TextYAlignment = Enum.TextYAlignment.Top
+    BodyText.TextTransparency = 1
+    BodyText.ZIndex = 302
+
+    tween(Notice, {Position = UDim2.new(1, -18, 0, 18), BackgroundTransparency = 0.04}, 0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+    tween(NoticeStroke, {Transparency = 0.08}, 0.35):Play()
+    tween(Accent, {BackgroundTransparency = 0}, 0.25):Play()
+    tween(Title, {TextTransparency = 0}, 0.28):Play()
+    tween(BodyText, {TextTransparency = 0}, 0.32):Play()
+
+    task.delay(4.5, function()
+        if not Notice or not Notice.Parent then return end
+        tween(Notice, {Position = UDim2.new(1, 340, 0, 18), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In):Play()
+        tween(NoticeStroke, {Transparency = 1}, 0.25):Play()
+        tween(Accent, {BackgroundTransparency = 1}, 0.2):Play()
+        tween(Title, {TextTransparency = 1}, 0.2):Play()
+        tween(BodyText, {TextTransparency = 1}, 0.2):Play()
+        task.wait(0.35)
+        if Notice then Notice:Destroy() end
+    end)
+end
+
+local CreditsList = Instance.new("Frame")
+CreditsList.Position = UDim2.new(0, 8, 0, 70)
+CreditsList.Size = UDim2.new(1, -16, 0, 0)
+CreditsList.AutomaticSize = Enum.AutomaticSize.Y
+CreditsList.BackgroundTransparency = 1
+CreditsList.ZIndex = 22
+CreditsList.Parent = CreditsScroll
+
+local CreditsLayout = Instance.new("UIListLayout")
+CreditsLayout.Padding = UDim.new(0, 12)
+CreditsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+CreditsLayout.Parent = CreditsList
+
+local OWNER_ID = 4364128937
+local CODER_ID = 11683846917
+
+local function getRobloxName(userId)
+    local ok, name = pcall(function()
+        return Players:GetNameFromUserIdAsync(userId)
+    end)
+    if ok and name then
+        return name
+    end
+    return "Roblox User " .. tostring(userId)
+end
+
+local function getRobloxAvatar(userId)
+    local ok, image = pcall(function()
+        return Players:GetUserThumbnailAsync(
+            userId,
+            Enum.ThumbnailType.HeadShot,
+            Enum.ThumbnailSize.Size180x180
+        )
+    end)
+    if ok then
+        return image
+    end
+    return ""
+end
+
+local function createCreditCard(data, order)
+    local Card = Instance.new("Frame")
+    Card.LayoutOrder = order
+    Card.Size = UDim2.new(1, 0, 0, 176)
+    Card.BackgroundColor3 = COLORS.Card
+    Card.BorderSizePixel = 0
+    Card.ZIndex = 23
+    Card.Parent = CreditsList
+    round(Card, 13)
+    local CardStroke = stroke(Card, data.Color, 1.5, 0.25)
+
+    local AvatarFrame = Instance.new("Frame")
+    AvatarFrame.Position = UDim2.new(0, 14, 0, 14)
+    AvatarFrame.Size = UDim2.fromOffset(82, 82)
+    AvatarFrame.BackgroundColor3 = Color3.fromRGB(24, 27, 39)
+    AvatarFrame.BorderSizePixel = 0
+    AvatarFrame.ZIndex = 24
+    AvatarFrame.Parent = Card
+    round(AvatarFrame, 18)
+    stroke(AvatarFrame, data.Color, 2, 0.05)
+
+    local AvatarImage = Instance.new("ImageLabel")
+    AvatarImage.Size = UDim2.fromScale(1, 1)
+    AvatarImage.BackgroundTransparency = 1
+    AvatarImage.BorderSizePixel = 0
+    AvatarImage.ZIndex = 25
+    AvatarImage.Parent = AvatarFrame
+    round(AvatarImage, 18)
+    AvatarImage.Image = getRobloxAvatar(data.UserId)
+
+    local Name = createText(Card, getRobloxName(data.UserId), 15, COLORS.White, Enum.Font.GothamBold)
+    Name.Position = UDim2.new(0, 112, 0, 14)
+    Name.Size = UDim2.new(1, -130, 0, 22)
+    Name.ZIndex = 25
+
+    local Role = createText(Card, data.Role, 10, data.Color, Enum.Font.GothamBold)
+    Role.Position = UDim2.new(0, 112, 0, 39)
+    Role.Size = UDim2.new(0, 100, 0, 18)
+    Role.ZIndex = 25
+    Role.TextStrokeColor3 = data.Color
+    Role.TextStrokeTransparency = 0.45
+
+    local RoleGlow = Instance.new("UIStroke")
+    RoleGlow.Color = data.Color
+    RoleGlow.Thickness = 1.5
+    RoleGlow.Transparency = 0.45
+    RoleGlow.Parent = Role
+
+    local Country = createText(Card, data.Country, 10, COLORS.Muted, Enum.Font.GothamMedium)
+    Country.Position = UDim2.new(0, 112, 0, 61)
+    Country.Size = UDim2.new(0, 180, 0, 18)
+    Country.ZIndex = 25
+
+    local Description = createText(Card, data.Description, 10, COLORS.Muted, Enum.Font.GothamMedium)
+    Description.Position = UDim2.new(0, 14, 0, 105)
+    Description.Size = UDim2.new(1, -170, 0, 48)
+    Description.TextWrapped = true
+    Description.TextYAlignment = Enum.TextYAlignment.Top
+    Description.ZIndex = 25
+
+    local TgButton = Instance.new("TextButton")
+    TgButton.Size = UDim2.fromOffset(132, 34)
+    TgButton.Position = UDim2.new(1, -146, 1, -48)
+    TgButton.BackgroundColor3 = Color3.fromRGB(25, 29, 42)
+    TgButton.BorderSizePixel = 0
+    TgButton.Text = "Telegram @" .. tostring(data.Telegram):gsub("https://t%.me/", "")
+    TgButton.TextColor3 = COLORS.White
+    TgButton.TextSize = 10
+    TgButton.Font = Enum.Font.GothamBold
+    TgButton.AutoButtonColor = false
+    TgButton.ZIndex = 26
+    TgButton.Parent = Card
+    round(TgButton, 9)
+    local TgStroke = stroke(TgButton, data.Color, 1, 0.35)
+
+    TgButton.MouseEnter:Connect(function()
+        tween(TgButton, { BackgroundColor3 = data.Color }, 0.12):Play()
+        tween(TgStroke, { Transparency = 0.05 }, 0.12):Play()
+    end)
+    TgButton.MouseLeave:Connect(function()
+        tween(TgButton, { BackgroundColor3 = Color3.fromRGB(25, 29, 42) }, 0.12):Play()
+        tween(TgStroke, { Transparency = 0.35 }, 0.12):Play()
+    end)
+    TgButton.Activated:Connect(function()
+        local url = tostring(data.Telegram)
+        if typeof(setclipboard) == "function" then
+            pcall(function()
+                setclipboard(url)
+            end)
+        end
+        showTelegramNotice("@" .. tostring(data.Telegram):gsub("https://t%.me/", ""))
+    end)
+
+end
+
+createCreditCard({
+    UserId = OWNER_ID,
+    Role = "OWNER",
+    Country = "Country Russia 🇷🇺",
+    Description = "Responsible for the project, Nexus interface, updates, and overall hub development.",
+    Telegram = "https://t.me/ShutZaika",
+    Color = Color3.fromRGB(255, 185, 60),
+}, 1)
+
+createCreditCard({
+    UserId = CODER_ID,
+    Role = "CODER",
+    Country = "Country Ukraine 🇺🇦",
+    Description = "Develops and maintains Nexus code, fixes bugs, and adds new UI features.",
+    Telegram = "https://t.me/SharlotaK",
+    Color = Color3.fromRGB(115, 145, 255),
+}, 2)
+
+--=======================================================
+-- OFFICIAL CHANNEL
+--=======================================================
+local OfficialChannelLabel = createText(CreditsList, "OFFICIAL CHANNEL", 10, COLORS.Muted, Enum.Font.GothamBold)
+OfficialChannelLabel.LayoutOrder = 3
+OfficialChannelLabel.Size = UDim2.new(1, 0, 0, 18)
+OfficialChannelLabel.ZIndex = 23
+
+local ProjectTelegramCard = Instance.new("Frame")
+ProjectTelegramCard.LayoutOrder = 4
+ProjectTelegramCard.Size = UDim2.new(1, 0, 0, 142)
+ProjectTelegramCard.BackgroundColor3 = COLORS.Card
+ProjectTelegramCard.BorderSizePixel = 0
+ProjectTelegramCard.ZIndex = 23
+ProjectTelegramCard.Parent = CreditsList
+round(ProjectTelegramCard, 13)
+stroke(ProjectTelegramCard, Color3.fromRGB(45, 145, 255), 1.5, 0.18)
+
+local ProjectAvatarFrame = Instance.new("Frame")
+ProjectAvatarFrame.Position = UDim2.new(0, 14, 0, 14)
+ProjectAvatarFrame.Size = UDim2.fromOffset(76, 76)
+ProjectAvatarFrame.BackgroundColor3 = Color3.fromRGB(24, 27, 39)
+ProjectAvatarFrame.BorderSizePixel = 0
+ProjectAvatarFrame.ZIndex = 24
+ProjectAvatarFrame.Parent = ProjectTelegramCard
+round(ProjectAvatarFrame, 38)
+stroke(ProjectAvatarFrame, Color3.fromRGB(45, 145, 255), 2, 0.08)
+
+local ProjectAvatar = Instance.new("ImageLabel")
+ProjectAvatar.Size = UDim2.fromScale(1, 1)
+ProjectAvatar.BackgroundTransparency = 1
+ProjectAvatar.BorderSizePixel = 0
+ProjectAvatar.ZIndex = 25
+ProjectAvatar.Parent = ProjectAvatarFrame
+round(ProjectAvatar, 38)
+ProjectAvatar.ScaleType = Enum.ScaleType.Crop
+ProjectAvatar.Image = "rbxthumb://type=Asset&id=74524314170257&w=180&h=180"
+
+local ProjectTitle = createText(ProjectTelegramCard, "NEXUS INJEKTOR", 15, COLORS.White, Enum.Font.GothamBold)
+ProjectTitle.Position = UDim2.new(0, 106, 0, 14)
+ProjectTitle.Size = UDim2.new(1, -122, 0, 22)
+ProjectTitle.ZIndex = 25
+
+local ProjectSubtitle = createText(ProjectTelegramCard, "Official Telegram of our project", 10, COLORS.Muted, Enum.Font.GothamMedium)
+ProjectSubtitle.Position = UDim2.new(0, 106, 0, 39)
+ProjectSubtitle.Size = UDim2.new(1, -122, 0, 20)
+ProjectSubtitle.ZIndex = 25
+
+local ProjectDescription = createText(ProjectTelegramCard, "News, updates, announcements and official Nexus project information.", 9, COLORS.Muted, Enum.Font.GothamMedium)
+ProjectDescription.Position = UDim2.new(0, 14, 0, 96)
+ProjectDescription.Size = UDim2.new(1, -174, 0, 30)
+ProjectDescription.TextWrapped = true
+ProjectDescription.TextYAlignment = Enum.TextYAlignment.Top
+ProjectDescription.ZIndex = 25
+
+local ProjectButton = Instance.new("TextButton")
+ProjectButton.Size = UDim2.fromOffset(142, 34)
+ProjectButton.Position = UDim2.new(1, -156, 1, -48)
+ProjectButton.BackgroundColor3 = Color3.fromRGB(30, 105, 190)
+ProjectButton.BorderSizePixel = 0
+ProjectButton.Text = "Copy Telegram link"
+ProjectButton.TextColor3 = COLORS.White
+ProjectButton.TextSize = 10
+ProjectButton.Font = Enum.Font.GothamBold
+ProjectButton.AutoButtonColor = false
+ProjectButton.ZIndex = 26
+ProjectButton.Parent = ProjectTelegramCard
+round(ProjectButton, 9)
+local ProjectButtonStroke = stroke(ProjectButton, Color3.fromRGB(75, 165, 255), 1.2, 0.12)
+
+ProjectButton.MouseEnter:Connect(function()
+    tween(ProjectButton, {BackgroundColor3 = Color3.fromRGB(45, 135, 225)}, 0.12):Play()
+    tween(ProjectButtonStroke, {Transparency = 0}, 0.12):Play()
+end)
+ProjectButton.MouseLeave:Connect(function()
+    tween(ProjectButton, {BackgroundColor3 = Color3.fromRGB(30, 105, 190)}, 0.12):Play()
+    tween(ProjectButtonStroke, {Transparency = 0.12}, 0.12):Play()
+end)
+ProjectButton.Activated:Connect(function()
+    local url = "https://t.me/Nexus_injector"
+    if typeof(setclipboard) == "function" then
+        pcall(function() setclipboard(url) end)
+    end
+    showChannelNotice()
+end)
+
+--=======================================================
 -- CARD AREA
 --=======================================================
 
 local CardsArea = Instance.new("Frame")
-CardsArea.Position = UDim2.new(0, 185, 0, 0)
-CardsArea.Size = UDim2.new(1, -185, 1, 0)
+CardsArea.Position = UDim2.new(0, 210, 0, 0)
+CardsArea.Size = UDim2.new(1, -210, 1, 0)
 CardsArea.BackgroundTransparency = 1
 CardsArea.ZIndex = 2
 CardsArea.Parent = Body
@@ -549,11 +1029,10 @@ CardsPadding.PaddingBottom = UDim.new(0, 12)
 CardsPadding.Parent = CardsScroll
 
 local Grid = Instance.new("UIGridLayout")
-Grid.CellPadding = UDim2.fromOffset(13, 13)
-Grid.CellSize = UDim2.fromOffset(300, 385)
-Grid.CellPadding = UDim2.fromOffset(13, 13)
+Grid.CellPadding = UDim2.fromOffset(12, 14)
+Grid.CellSize = UDim2.new(0.31, 0, 0, 320)
 Grid.FillDirection = Enum.FillDirection.Horizontal
-Grid.FillDirectionMaxCells = 2
+Grid.FillDirectionMaxCells = 3
 Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 Grid.SortOrder = Enum.SortOrder.LayoutOrder
 Grid.Parent = CardsScroll
@@ -563,9 +1042,9 @@ Grid.Parent = CardsScroll
 --=======================================================
 
 local Footer = Instance.new("Frame")
-Footer.Position = UDim2.new(0, 0, 1, -60)
-Footer.Size = UDim2.new(1, 0, 0, 60)
-Footer.BackgroundColor3 = Color3.fromRGB(11, 13, 20)
+Footer.Position = UDim2.new(0, 0, 1, -62)
+Footer.Size = UDim2.new(1, 0, 0, 62)
+Footer.BackgroundColor3 = Color3.fromRGB(3, 9, 19)
 Footer.BorderSizePixel = 0
 Footer.ZIndex = 7
 Footer.Parent = Main
@@ -594,10 +1073,34 @@ UserName.Position = UDim2.new(0, 66, 0, 7)
 UserName.Size = UDim2.new(0, 170, 0, 20)
 UserName.ZIndex = 8
 
-local UserTag = createText(Footer, "NEXUS USER", 9, COLORS.Muted, Enum.Font.GothamMedium)
+local OWNER_USER_ID = 4364128937
+local CODER_USER_ID = 11683846917
+local isNexusOwner = LocalPlayer.UserId == OWNER_USER_ID
+local isNexusCoder = LocalPlayer.UserId == CODER_USER_ID
+local NexusRole = isNexusOwner and "OWNER" or (isNexusCoder and "CODER" or "NEXUS USER")
+local NexusRoleColor = isNexusOwner and Color3.fromRGB(255, 185, 60) or (isNexusCoder and Color3.fromRGB(115, 145, 255) or COLORS.Muted)
+
+local UserTag = createText(
+    Footer,
+    NexusRole,
+    9,
+    NexusRoleColor,
+    Enum.Font.GothamBold
+)
 UserTag.Position = UDim2.new(0, 66, 0, 27)
 UserTag.Size = UDim2.new(0, 130, 0, 14)
 UserTag.ZIndex = 8
+
+if isNexusOwner or isNexusCoder then
+    UserTag.TextStrokeColor3 = NexusRoleColor
+    UserTag.TextStrokeTransparency = 0.3
+
+    local RoleGlow = Instance.new("UIStroke")
+    RoleGlow.Color = NexusRoleColor
+    RoleGlow.Thickness = 2
+    RoleGlow.Transparency = 0.45
+    RoleGlow.Parent = UserTag
+end
 
 local UserIdLabel = createText(Footer, "ID: " .. tostring(LocalPlayer.UserId), 8, Color3.fromRGB(110, 114, 135), Enum.Font.GothamMedium)
 UserIdLabel.Position = UDim2.new(0, 66, 0, 42)
@@ -621,6 +1124,50 @@ FooterVersion.AnchorPoint = Vector2.new(1, 0)
 FooterVersion.Position = UDim2.new(1, -24, 0, 34)
 FooterVersion.Size = UDim2.new(0, 120, 0, 15)
 FooterVersion.ZIndex = 8
+
+-- Footer CREDITS button (center area)
+local FooterCredits = Instance.new("TextButton")
+FooterCredits.Name = "FooterCredits"
+FooterCredits.AnchorPoint = Vector2.new(0.5, 0.5)
+FooterCredits.Position = UDim2.new(0.55, 0, 0.5, 0)
+FooterCredits.Size = UDim2.fromOffset(126, 34)
+FooterCredits.BackgroundColor3 = Color3.fromRGB(34, 30, 94)
+FooterCredits.BorderSizePixel = 0
+FooterCredits.Text = "CREDITS"
+FooterCredits.TextColor3 = Color3.fromRGB(190, 205, 255)
+FooterCredits.TextSize = 11
+FooterCredits.Font = Enum.Font.GothamBold
+FooterCredits.AutoButtonColor = false
+FooterCredits.ZIndex = 9
+FooterCredits.Parent = Footer
+round(FooterCredits, 9)
+local FooterCreditsStroke = stroke(FooterCredits, Color3.fromRGB(70, 105, 255), 1.4, 0.08)
+
+--=======================================================
+-- BLUE NEON LIGHTNING DECOR
+--=======================================================
+-- Three clean lightning bolts in the upper empty header space and three in
+-- the lower footer gaps. Positions are proportional so they stay clear of
+-- the Credits button and the right-side status controls.
+addNeonLightning(Header, 0.42, 10, 38, -12, 8)
+addNeonLightning(Header, 0.60, 7, 34, 8, 8)
+addNeonLightning(Header, 0.74, 11, 36, -10, 8)
+
+addNeonLightning(Footer, 0.25, 7, 31, -12, 7)
+addNeonLightning(Footer, 0.40, 8, 28, 10, 7)
+addNeonLightning(Footer, 0.76, 8, 30, -12, 7)
+
+FooterCredits.MouseEnter:Connect(function()
+    tween(FooterCredits, { BackgroundColor3 = Color3.fromRGB(48, 52, 145) }, 0.12):Play()
+    tween(FooterCreditsStroke, { Transparency = 0 }, 0.12):Play()
+    tween(FooterCredits, { TextColor3 = COLORS.White }, 0.12):Play()
+end)
+
+FooterCredits.MouseLeave:Connect(function()
+    tween(FooterCredits, { BackgroundColor3 = Color3.fromRGB(67, 31, 95) }, 0.12):Play()
+    tween(FooterCreditsStroke, { Transparency = 0.08 }, 0.12):Play()
+    tween(FooterCredits, { TextColor3 = Color3.fromRGB(225, 190, 255) }, 0.12):Play()
+end)
 
 --=======================================================
 -- DETAILS PAGE
@@ -702,7 +1249,7 @@ DetailsList.Parent = DetailsContainer
 local DetailsFooter = Instance.new("Frame")
 DetailsFooter.Position = UDim2.new(0, 0, 1, -66)
 DetailsFooter.Size = UDim2.new(1, 0, 0, 66)
-DetailsFooter.BackgroundColor3 = Color3.fromRGB(11, 13, 20)
+DetailsFooter.BackgroundColor3 = Color3.fromRGB(3, 9, 19)
 DetailsFooter.BorderSizePixel = 0
 DetailsFooter.ZIndex = 102
 DetailsFooter.Parent = DetailsPage
@@ -725,9 +1272,9 @@ local RunButton = Instance.new("TextButton")
 RunButton.Name = "RunButton"
 RunButton.Size = UDim2.new(0, 170, 0, 40)
 RunButton.Position = UDim2.new(1, -185, 0.5, -20)
-RunButton.BackgroundColor3 = Color3.fromRGB(37, 201, 238)
+RunButton.BackgroundColor3 = Color3.fromRGB(20, 142, 235)
 RunButton.Text = "RUN"
-RunButton.TextColor3 = Color3.fromRGB(5, 8, 12)
+RunButton.TextColor3 = COLORS.White
 RunButton.TextSize = 11
 RunButton.Font = Enum.Font.GothamBold
 RunButton.AutoButtonColor = false
@@ -1022,7 +1569,7 @@ local function createFeatureCategory(cfg, categoryData, order)
     Group.ZIndex = 102
     Group.Parent = DetailsContainer
     round(Group, 12)
-    stroke(Group, COLORS.BorderSoft, 1)
+    stroke(Group, Color3.fromRGB(12, 66, 112), 1)
 
     local CategoryTitle = createText(Group, string.upper(categoryData.Category), 12, cfg.Accent, Enum.Font.GothamBold)
     CategoryTitle.Position = UDim2.new(0, 15, 0, 12)
@@ -1340,12 +1887,19 @@ local function selectCategory(category)
         }, 0.15):Play()
     end
 
-    updateCardVisibility()
+    local creditsActive = string.upper(category) == "CREDITS"
+    CardsArea.Visible = not creditsActive
+    CreditsArea.Visible = creditsActive
+
+    if not creditsActive then
+        updateCardVisibility()
+    end
 end
 
 selectCategory("ALL")
 AllButton.Activated:Connect(function() selectCategory("ALL") end)
 ShuterButton.Activated:Connect(function() selectCategory("SHUTER") end)
+FooterCredits.Activated:Connect(function() selectCategory("CREDITS") end)
 Search:GetPropertyChangedSignal("Text"):Connect(updateCardVisibility)
 
 --=======================================================
@@ -1400,20 +1954,22 @@ end)
 local function updateGrid()
     local width = CardsScroll.AbsoluteSize.X
 
-    if width < 520 then
-        Grid.FillDirectionMaxCells = 1
-        Grid.CellSize = UDim2.new(1, -4, 0, 385)
-    elseif width < 820 then
-        Grid.FillDirectionMaxCells = 2
-        Grid.CellSize = UDim2.new(0.5, -7, 0, 385)
-    else
-        Grid.FillDirectionMaxCells = 2
-        Grid.CellSize = UDim2.fromOffset(math.max(260, math.floor((width - 13) / 2)), 385)
-    end
+    -- ALWAYS 3 CARDS PER ROW.
+    -- The card width is calculated from the actual available pixel width so
+    -- three cards fit on every screen size instead of switching to 1/2 columns.
+    local gap = 12
+    local availableWidth = math.max(width - (gap * 2) - 8, 60)
+    local cellWidth = math.floor(availableWidth / 3)
+
+    Grid.FillDirectionMaxCells = 3
+    Grid.CellSize = UDim2.fromOffset(cellWidth, 320)
+    Grid.CellPadding = UDim2.fromOffset(gap, 14)
+    Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 end
 
 CardsScroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGrid)
-updateGrid()
+task.defer(updateGrid)
+task.delay(0.15, updateGrid)
 
 --=======================================================
 -- FPS / PING
