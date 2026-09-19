@@ -155,51 +155,12 @@ local PaletteSwatches = {
     Color3.fromRGB(255, 220, 40), Color3.fromRGB(185, 75, 255), Color3.fromRGB(255, 255, 255)
 }
 
---// RIVALS-COMPATIBLE TEAM CHECK WITH FFA FILTER
+--// PURE TEAM CHECK (BLOCK STRIKE LOGIC)
 local function isTeammate(p)
     if not p or p == LocalPlayer then return true end
-
-    local function isValidTeam(t)
-        local s = tostring(t):lower()
-        -- Р•СЃР»Рё РєРѕРјР°РЅРґР° 0, РїСѓСЃС‚Р°СЏ РёР»Рё None - СЌС‚Рѕ FFA РјР°С‚С‡, РєР°Р¶РґС‹Р№ СЃР°Рј Р·Р° СЃРµР±СЏ (РІСЂР°Рі)
-        if s == "none" or s == "neutral" or s == "ffa" or s == "" or s == "0" or s == "false" then 
-            return false 
-        end
+    if LocalPlayer.Team and p.Team and LocalPlayer.Team == p.Team then
         return true
     end
-
-    if LocalPlayer.Team ~= nil and p.Team ~= nil then
-        if LocalPlayer.Team == p.Team and LocalPlayer.Team.Name ~= "Neutral" then return true end
-    end
-
-    if LocalPlayer.TeamColor ~= nil and p.TeamColor ~= nil then
-        if LocalPlayer.TeamColor == p.TeamColor and tostring(LocalPlayer.TeamColor) ~= "White" then return true end
-    end
-
-    local myChar = LocalPlayer.Character
-    local pChar = p.Character
-    local attrsToCheck = {"Team", "TeamId", "team", "teamId", "TeamName", "team_id"}
-    
-    for _, attr in ipairs(attrsToCheck) do
-        local t1 = LocalPlayer:GetAttribute(attr) or (myChar and myChar:GetAttribute(attr))
-        local t2 = p:GetAttribute(attr) or (pChar and pChar:GetAttribute(attr))
-        if t1 ~= nil and t2 ~= nil then
-            if tostring(t1):lower() == tostring(t2):lower() and isValidTeam(t1) then 
-                return true 
-            end
-        end
-    end
-
-    for _, val in ipairs({"Team", "TeamValue", "TeamName"}) do
-        local v1 = LocalPlayer:FindFirstChild(val) or (myChar and myChar:FindFirstChild(val))
-        local v2 = p:FindFirstChild(val) or (pChar and pChar:FindFirstChild(val))
-        if v1 and v2 and v1:IsA("ValueBase") and v2:IsA("ValueBase") then
-            if tostring(v1.Value):lower() == tostring(v2.Value):lower() and isValidTeam(v1.Value) then 
-                return true 
-            end
-        end
-    end
-
     return false
 end
 
