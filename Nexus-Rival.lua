@@ -157,94 +157,76 @@ local PaletteSwatches = {
 
 --// SMART TEAM CHECK (EXACTLY FROM YOUR BLOCK STRIKE SCRIPT)
 local function isTeammate(p)
-    if not p or p == LocalPlayer then return true end
-    
-    if LocalPlayer.Team and p.Team then
-        if LocalPlayer.Team == p.Team then return true end
-        if LocalPlayer.Team.Name ~= "" and LocalPlayer.Team.Name == p.Team.Name then return true end
+    if not p or p == LocalPlayer then
+        return true
     end
-    
-    if LocalPlayer.TeamColor and p.TeamColor then
-        local myCol = LocalPlayer.TeamColor.Name
-        local pCol = p.TeamColor.Name
-        if myCol ~= "White" and myCol ~= "Medium stone grey" and myCol == pCol then return true end
-        if not LocalPlayer.Neutral and not p.Neutral and LocalPlayer.TeamColor == p.TeamColor then return true end
+
+    -- 1) Normal Roblox Teams: this is the only source we trust first.
+    if LocalPlayer.Team ~= nil and p.Team ~= nil then
+        return LocalPlayer.Team == p.Team
     end
-    
-    local myTeamAttr = LocalPlayer:GetAttribute("Team") or (LocalPlayer.Character and LocalPlayer.Character:GetAttribute("Team"))
-    local pTeamAttr = p:GetAttribute("Team") or (p.Character and p.Character:GetAttribute("Team"))
-    if myTeamAttr and pTeamAttr and myTeamAttr ~= "" then
-        return tostring(myTeamAttr) == tostring(pTeamAttr)
+
+    -- 2) TeamColor fallback, but only when both players are non-neutral.
+    if not LocalPlayer.Neutral and not p.Neutral
+        and LocalPlayer.TeamColor ~= nil
+        and p.TeamColor ~= nil then
+        return LocalPlayer.TeamColor == p.TeamColor
     end
-    
-    for _, src in ipairs({LocalPlayer, LocalPlayer.Character}) do
-        if src then
-            local tVal = src:FindFirstChild("Team") or src:FindFirstChild("TeamValue") or src:FindFirstChild("TeamName")
-            local pSrc = p.Character or p
-            local ptVal = pSrc and (pSrc:FindFirstChild("Team") or pSrc:FindFirstChild("TeamValue") or pSrc:FindFirstChild("TeamName"))
-            if tVal and ptVal then
-                local v1 = (tVal:IsA("ValueBase") and tVal.Value) or tVal.Name
-                local v2 = (ptVal:IsA("ValueBase") and ptVal.Value) or ptVal.Name
-                if v1 and v2 and v1 == v2 and v1 ~= "" then return true end
+
+    -- 3) Common custom team attributes used by Roblox games.
+    local function getTeamValue(player)
+        local character = player.Character
+
+        local names = {
+            "Team",
+            "TeamName",
+            "TeamID",
+            "TeamId",
+            "TeamColor",
+            "Faction",
+            "FactionName",
+            "Side"
+        }
+
+        for _, name in ipairs(names) do
+            local value = player:GetAttribute(name)
+            if value ~= nil and tostring(value) ~= "" then
+                return tostring(value)
+            end
+
+            if character then
+                value = character:GetAttribute(name)
+                if value ~= nil and tostring(value) ~= "" then
+                    return tostring(value)
+                end
             end
         end
-    end
-    
-    return false
-end
 
---// FAST DEAD-PLAYER PURGE
-local function isAlivePlayer(p)
-    if not p or p == LocalPlayer then return false end
-    local char = p.Character
-    if not char or not char:IsDescendantOf(workspace) then return false end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        if hum.Health <= 0 then return false end
-        local st = hum:GetState()
-        if st == Enum.HumanoidStateType.Dead or st == Enum.HumanoidStateType.Physics then return false end
-    end
-    if char:GetAttribute("Dead") == true or char:GetAttribute("IsDead") == true or char:GetAttribute("Killed") == true then return false end
-    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-    if not root then return false end
-    if root.Transparency >= 0.95 and char:FindFirstChild("Head") and char.Head.Transparency >= 0.95 then return false end
-    return true
-end
-
---// HARDWARE DETECTION
-local function detectHardwareProfile()
-    local platformName = "Desktop PC"
-    pcall(function()
-        local p = UserInputService:GetPlatform()
-        if p == Enum.Platform.Android then platformName = "Android Mobile"
-        elseif p == Enum.Platform.IOS then platformName = "Apple iOS"
-        elseif p == Enum.Platform.Windows then platformName = "Windows PC"
-        else
-            if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then platformName = "Touch Mobile" end
+        for _, container in ipairs({player, character}) do
+            if container then
+                for _, name in ipairs(names) do
+                    local obj = container:FindFirstChild(name)
+                    if obj and obj:IsA("ValueBase") then
+                        local value = obj.Value
+                        if value ~= nil and tostring(value) ~= "" then
+                            return tostring(value)
+                        end
+                    end
+                end
+            end
         end
-    end)
-    local inputType = "Mouse/Key"
-    if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then inputType = "Touch" end
-    local vpSize = Camera and Camera.ViewportSize or Vector2.new(800, 600)
-    return { Platform = platformName, Input = inputType, Resolution = string.format("%d x %d", math.floor(vpSize.X), math.floor(vpSize.Y)) }
-end
-local DeviceInfo = detectHardwareProfile()
 
---// SAFE GUI CONTAINER
-local function getSafeContainer()
-    local target = nil
-    pcall(function() target = gethui and gethui() end)
-    if not target then pcall(function() target = game:GetService("CoreGui") end) end
-    if not target or (typeof(target) == "Instance" and not pcall(function() local _ = target.Name end)) then
-        target = LocalPlayer:WaitForChild("PlayerGui", 5)
+        return nil
     end
-    return target
-end
 
-local ContainerGui = getSafeContainer()
-if not ContainerGui then
-    warn("[NEXUS] UI ERROR: Could not find valid GUI container!")
-    return
+    local myTeam = getTeamValue(LocalPlayer)
+    local theirTeam = getTeamValue(p)
+
+    if myTeam ~= nil and theirTeam ~= nil then
+        return myTeam == theirTeam
+    end
+
+    return false
 end
 
 local function addCorner(parent, radius)
@@ -276,6 +258,32 @@ local function copyClipboard(text)
 end
 
 --// CREATE UI
+-- Resolve a real GUI container before parenting the menu.
+local ContainerGui
+
+pcall(function()
+    if type(gethui) == "function" then
+        ContainerGui = gethui()
+    end
+end)
+
+if not ContainerGui then
+    pcall(function()
+        ContainerGui = game:GetService("CoreGui")
+    end)
+end
+
+if not ContainerGui then
+    pcall(function()
+        ContainerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
+
+if not ContainerGui then
+    warn("[NEXUS] GUI container not found; menu cannot be displayed.")
+    return
+end
+
 local RootScreen = Instance.new("ScreenGui")
 RootScreen.Name = "NexusSupremeShooter"
 RootScreen.ResetOnSpawn = false
@@ -450,6 +458,7 @@ MainFrame.Name = "MainFrame"
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Position = UDim2.fromScale(0.5, 0.5)
 MainFrame.Size = UDim2.fromOffset(winW, winH)
+MainFrame.Visible = true
 MainFrame.BackgroundColor3 = CurrentTheme.Bg
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
@@ -934,7 +943,22 @@ staticRaycastParams.IgnoreWater = true
 
 local function resolveTargetPart(char, partMode)
     if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("Head")
+
+    if partMode == "Head" then
+        return char:FindFirstChild("Head")
+            or char:FindFirstChild("HumanoidRootPart")
+    elseif partMode == "Torso" then
+        return char:FindFirstChild("UpperTorso")
+            or char:FindFirstChild("Torso")
+            or char:FindFirstChild("HumanoidRootPart")
+    elseif partMode == "Legs" then
+        return char:FindFirstChild("LowerTorso")
+            or char:FindFirstChild("LeftUpperLeg")
+            or char:FindFirstChild("HumanoidRootPart")
+    end
+
+    return char:FindFirstChild("HumanoidRootPart")
+        or char:FindFirstChild("Head")
 end
 
 local function isTargetVisiblePenetrating(origin, targetPart, targetChar)
@@ -964,150 +988,288 @@ local function isTargetVisiblePenetrating(origin, targetPart, targetChar)
 end
 
 --// TARGET SELECTION & AIM ENGINE
+-- Sticky 360-degree target lock:
+-- 1) A target is acquired inside the configured FOV.
+-- 2) After acquisition, FOV/onscreen/visibility no longer matter.
+-- 3) The camera follows that exact target in all directions.
+-- 4) The lock is released only when the target is actually defeated,
+--    leaves the Players list, or team-check makes it invalid.
+
 local StickyTargetPlayer = nil
 local StickyTargetPart = nil
-local LastTimeTargetVisible = 0
-local TARGET_GRACE_TIME = 0.35
+local smoothedAimPos = nil
 
-local function validateStickyTarget()
-    if not StickyTargetPlayer or not StickyTargetPlayer.Parent then return false end
-    local char = StickyTargetPlayer.Character
-    if not char then return false end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum or hum.Health <= 0 then return false end
-    
-    if Config.Aimbot.TeamCheck and isTeammate(StickyTargetPlayer) then return false end
+local MAX_LEAD_TIME = 0.035
+local DIRECT_LOCK = true
 
-    StickyTargetPart = resolveTargetPart(char, Config.Aimbot.TargetPart)
-    if not StickyTargetPart then return false end
-
-    local screenPos, onScreen = Camera:WorldToViewportPoint(StickyTargetPart.Position)
-    if not onScreen or screenPos.Z <= 0 then return false end
-
-    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
-    if screenDist > (Config.Aimbot.FOV * 1.6) then return false end
-
-    local now = os.clock()
-    if isTargetVisiblePenetrating(Camera.CFrame.Position, StickyTargetPart, char) then
-        LastTimeTargetVisible = now
-        return true
-    else
-        if (now - LastTimeTargetVisible) < TARGET_GRACE_TIME then return true end
-        return false
+local function getCurrentCamera()
+    local cam = workspace.CurrentCamera
+    if cam then
+        Camera = cam
     end
+    return Camera
 end
 
-local function acquireBestTarget()
+local function clearTargetLock()
+    StickyTargetPlayer = nil
+    StickyTargetPart = nil
+    smoothedAimPos = nil
+end
+
+local function getAimPart(player)
+    if not player or not player.Character then
+        return nil
+    end
+    return resolveTargetPart(player.Character, Config.Aimbot.TargetPart)
+end
+
+local function isValidAimPlayer(player)
+    if not player or player == LocalPlayer then
+        return false
+    end
+
+    local char = player.Character
+    if not char then
+        return false
+    end
+
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then
+        return false
+    end
+
+    if Config.Aimbot.TeamCheck and isTeammate(player) then
+        return false
+    end
+
+    return getAimPart(player) ~= nil
+end
+
+local function isAimVisible(cam, part, character)
+    if not Config.Aimbot.VisibilityCheck then
+        return true
+    end
+
+    if not cam or not part or not character then
+        return false
+    end
+
+    local origin = cam.CFrame.Position
+    local direction = part.Position - origin
+
+    if direction.Magnitude <= 0.05 then
+        return true
+    end
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {
+        LocalPlayer.Character,
+        cam
+    }
+    params.IgnoreWater = true
+
+    local hit = workspace:Raycast(origin, direction, params)
+    if not hit then
+        return true
+    end
+
+    return hit.Instance:IsDescendantOf(character)
+end
+
+local function getScreenDistance(cam, worldPosition)
+    if not cam then
+        return math.huge, false
+    end
+
+    local viewport = cam.ViewportSize
+    local center = Vector2.new(viewport.X * 0.5, viewport.Y * 0.5)
+
+    local screenPos, onScreen = cam:WorldToViewportPoint(worldPosition)
+    if not onScreen or screenPos.Z <= 0 then
+        return math.huge, false
+    end
+
+    local delta = Vector2.new(screenPos.X, screenPos.Y) - center
+    return delta.Magnitude, true
+end
+
+local function getPredictedPosition(player, part, cam)
+    if not part then
+        return nil
+    end
+
+    local position = part.Position
+    local character = player and player.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+
+    if not root or not cam then
+        return position
+    end
+
+    local velocity = root.AssemblyLinearVelocity
+    if velocity.Magnitude < 2 then
+        return position
+    end
+
+    local distance = (position - cam.CFrame.Position).Magnitude
+    local leadTime = math.clamp(distance / 4500, 0.008, MAX_LEAD_TIME)
+
+    return position + velocity * leadTime
+end
+
+local function acquireBestTarget(cam)
     local bestPlayer = nil
     local bestPart = nil
-    local shortestDist = Config.Aimbot.FOV
-    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local bestScore = math.huge
 
     for _, enemy in ipairs(Players:GetPlayers()) do
-        if enemy ~= LocalPlayer and enemy.Character then
-            if Config.Aimbot.TeamCheck and isTeammate(enemy) then continue end
-            local char = enemy.Character
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            local targetPart = resolveTargetPart(char, Config.Aimbot.TargetPart)
-            if hum and hum.Health > 0 and targetPart then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                if onScreen and screenPos.Z > 0 then
-                    local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
-                    if screenDist <= shortestDist then
-                        if isTargetVisiblePenetrating(Camera.CFrame.Position, targetPart, char) then
-                            shortestDist = screenDist
-                            bestPlayer = enemy
-                            bestPart = targetPart
+        if isValidAimPlayer(enemy) then
+            local part = getAimPart(enemy)
+
+            if part then
+                local screenDist, onScreen = getScreenDistance(cam, part.Position)
+
+                -- FOV is used only for the FIRST lock.
+                if onScreen and screenDist <= Config.Aimbot.FOV then
+                    local visible = isAimVisible(cam, part, enemy.Character)
+
+                    if visible then
+                        local worldDist = (part.Position - cam.CFrame.Position).Magnitude
+
+                        if worldDist <= 1000 then
+                            local score = screenDist + worldDist * 0.001
+
+                            if score < bestScore then
+                                bestScore = score
+                                bestPlayer = enemy
+                                bestPart = part
+                            end
                         end
                     end
                 end
             end
         end
     end
+
     return bestPlayer, bestPart
 end
 
-local smoothedAimPos = nil
+local function updateLockedTarget()
+    if not StickyTargetPlayer then
+        return false
+    end
 
-RunService:BindToRenderStep("NexusAimEngine", Enum.RenderPriority.Camera.Value + 1, function(dt)
-    if Config.Aimbot.DrawFOV and FOVCircleFrame then
-        FOVCircleFrame.Visible = true
-        FOVCircleFrame.Position = UDim2.fromOffset(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        local hue = (os.clock() * 0.4) % 1
-        if Config.Settings.RainbowFOV then FOVStroke.Color = Color3.fromHSV(hue, 0.85, 1) else FOVStroke.Color = CurrentTheme.Accent end
-    elseif FOVCircleFrame then
-        FOVCircleFrame.Visible = false
+    -- While locked, DO NOT check FOV, screen position or visibility.
+    -- Only actual target validity matters.
+    if not isValidAimPlayer(StickyTargetPlayer) then
+        clearTargetLock()
+        return false
+    end
+
+    StickyTargetPart = getAimPart(StickyTargetPlayer)
+    if not StickyTargetPart then
+        clearTargetLock()
+        return false
+    end
+
+    return true
+end
+
+RunService:BindToRenderStep(
+    "NexusAimEngine",
+    Enum.RenderPriority.Last.Value,
+    function(dt)
+
+    local cam = getCurrentCamera()
+    if not cam then
+        return
+    end
+
+    -- FOV ring
+    if FOVCircleFrame then
+        FOVCircleFrame.Visible = Config.Aimbot.DrawFOV
+
+        if Config.Aimbot.DrawFOV then
+            FOVCircleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+            FOVCircleFrame.Position = UDim2.fromScale(0.5, 0.5)
+            FOVCircleFrame.Size =
+                UDim2.fromOffset(Config.Aimbot.FOV * 2, Config.Aimbot.FOV * 2)
+
+            local hue = (os.clock() * 0.4) % 1
+            if Config.Settings.RainbowFOV then
+                FOVStroke.Color = Color3.fromHSV(hue, 0.85, 1)
+            else
+                FOVStroke.Color = CurrentTheme.Accent
+            end
+        end
     end
 
     if not Config.Aimbot.Enabled then
-        StickyTargetPlayer = nil
-        StickyTargetPart = nil
+        clearTargetLock()
+        return
+    end
+
+    -- Acquire once. After this, the target is sticky for 360 degrees
+    -- until the target's Humanoid is defeated.
+    if not updateLockedTarget() then
+        StickyTargetPlayer, StickyTargetPart = acquireBestTarget(cam)
+
+        if not StickyTargetPlayer or not StickyTargetPart then
+            return
+        end
+
+        smoothedAimPos = StickyTargetPart.Position
+    end
+
+    local targetPlayer = StickyTargetPlayer
+    local targetPart = StickyTargetPart
+    if not targetPlayer or not targetPart then
+        return
+    end
+
+    -- Keep the lock while the target is hidden, but NEVER move the camera
+    -- toward a target that is behind a wall/obstacle. As soon as the target
+    -- becomes visible again, tracking resumes automatically.
+    if Config.Aimbot.VisibilityCheck and not isAimVisible(cam, targetPart, targetPlayer.Character) then
         smoothedAimPos = nil
         return
     end
 
-    if not validateStickyTarget() then
-        StickyTargetPlayer, StickyTargetPart = acquireBestTarget()
-        if StickyTargetPlayer then
-            LastTimeTargetVisible = os.clock()
-            smoothedAimPos = nil
-        end
+    local targetPos = getPredictedPosition(targetPlayer, targetPart, cam)
+    if not targetPos then
+        return
     end
 
-    if StickyTargetPart and StickyTargetPlayer and StickyTargetPlayer.Character then
-        local camPos = Camera.CFrame.Position
-        
-        local basePos = StickyTargetPart.Position
-        if Config.Aimbot.TargetPart == "Head" then
-            basePos = basePos + Vector3.new(0, 1.45, 0)
-        elseif Config.Aimbot.TargetPart == "Legs" then
-            basePos = basePos - Vector3.new(0, 1.5, 0)
-        end
-        local targetPos = basePos
-        local targetDist = (targetPos - camPos).Magnitude
+    if Config.Aimbot.TargetPart == "Torso" then
+        targetPos += Vector3.new(0, 0.12, 0)
+    elseif Config.Aimbot.TargetPart == "Legs" then
+        targetPos += Vector3.new(0, 0.05, 0)
+    end
 
-        if targetDist > 55 then
-            local tRoot = StickyTargetPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if tRoot then
-                local vel = tRoot.AssemblyLinearVelocity or Vector3.zero
-                if vel.Magnitude > 1.5 and vel.Magnitude < 90 then
-                    local lead = vel * 0.032
-                    if lead.Magnitude > 1.8 then lead = lead.Unit * 1.8 end
-                    targetPos = targetPos + lead
-                end
-            end
-        end
+    if DIRECT_LOCK then
+        -- Hard lock: no screen/FOV check and no smoothing.
+        -- Visibility is checked above, so the camera never tracks through walls.
+        local camPos = cam.CFrame.Position
+        local toTarget = targetPos - camPos
 
-        local isVisibleNow = isTargetVisiblePenetrating(camPos, StickyTargetPart, StickyTargetPlayer.Character)
-        if Config.Aimbot.VisibilityCheck and not isVisibleNow then
-            smoothedAimPos = nil
-            return
-        end
-
-        if not smoothedAimPos or (targetPos - smoothedAimPos).Magnitude > 20 then
-            smoothedAimPos = targetPos
-        else
-            smoothedAimPos = smoothedAimPos:Lerp(targetPos, math.clamp(dt * 30, 0.2, 1))
-        end
-
-        local toTarget = smoothedAimPos - camPos
-        if toTarget.Magnitude > 0.1 then
-            local dir = toTarget.Unit
-            local yaw = math.atan2(-dir.X, -dir.Z)
-            local pitch = math.asin(math.clamp(dir.Y, -0.999, 0.999))
-            local targetRot = CFrame.fromEulerAnglesYXZ(pitch, yaw, 0)
-            local curCFrame = Camera.CFrame
-            local curRot = curCFrame - curCFrame.Position
-            local smoothInput = math.clamp(Config.Aimbot.Smoothness, 0.01, 1.0)
-            local lerpRate = (1.10 - smoothInput) * 22
-            local factor = math.clamp(1 - math.exp(-lerpRate * dt), 0.15, 0.95)
-            if Config.Aimbot.NoRecoil then factor = math.clamp(factor * 1.35, 0.30, 1.0) end
-            local newRot = curRot:Lerp(targetRot, factor)
-            Camera.CFrame = CFrame.new(curCFrame.Position) * newRot
+        if toTarget.Magnitude > 0.05 then
+            cam.CFrame = CFrame.lookAt(camPos, targetPos)
         end
     else
-        smoothedAimPos = nil
+        if not smoothedAimPos then
+            smoothedAimPos = targetPos
+        else
+            local positionAlpha = 1 - math.exp(-dt * 30)
+            smoothedAimPos = smoothedAimPos:Lerp(targetPos, positionAlpha)
+        end
+
+        local camPos = cam.CFrame.Position
+        local toTarget = smoothedAimPos - camPos
+
+        if toTarget.Magnitude > 0.05 then
+            cam.CFrame = CFrame.lookAt(camPos, smoothedAimPos)
+        end
     end
 end)
 
@@ -1395,6 +1557,40 @@ uTag.TextSize = 7.5
 uTag.TextColor3 = isPrem and Color3.fromRGB(15, 15, 15) or CurrentTheme.Accent
 uTag.ZIndex = 18
 addCorner(uTag, 4)
+
+-- Device telemetry (safe fallbacks for executors/games where platform APIs differ)
+local DeviceInfo = {
+    Platform = "Unknown",
+    Resolution = "Unknown",
+    Input = "Unknown"
+}
+
+pcall(function()
+    local platform = UserInputService:GetPlatform()
+    DeviceInfo.Platform = tostring(platform):gsub("Enum%.Platform%.", "")
+end)
+
+pcall(function()
+    local camera = workspace.CurrentCamera
+    if camera then
+        local size = camera.ViewportSize
+        DeviceInfo.Resolution = string.format("%dx%d", math.floor(size.X), math.floor(size.Y))
+    end
+end)
+
+pcall(function()
+    if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+        DeviceInfo.Input = "Touch"
+    elseif UserInputService.KeyboardEnabled and UserInputService.MouseEnabled then
+        DeviceInfo.Input = "Keyboard + Mouse"
+    elseif UserInputService.GamepadEnabled then
+        DeviceInfo.Input = "Gamepad"
+    elseif UserInputService.TouchEnabled then
+        DeviceInfo.Input = "Touch"
+    else
+        DeviceInfo.Input = "Unknown"
+    end
+end)
 
 local deviceCard = Instance.new("Frame", statusPage)
 deviceCard.Size = UDim2.new(1, -6, 0, 64)
@@ -1716,6 +1912,32 @@ addCorner(unloadBtn, 8)
 addStroke(unloadBtn, Color3.fromRGB(80, 25, 35), 1)
 unloadBtn.Activated:Connect(function()
     if _G.NexusShooterCleanup then _G.NexusShooterCleanup() end
+end)
+
+--// FORCE MAIN MENU VISIBILITY
+-- Keep the full menu visible on startup. This also recovers cleanly if
+-- another UI state accidentally hid the MainFrame during initialization.
+pcall(function()
+    RootScreen.Enabled = true
+    MainFrame.Visible = true
+    MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+    MainFrame.Size = UDim2.fromOffset(winW, winH)
+    MiniPill.Visible = false
+end)
+
+-- Mobile-friendly fallback: tapping the small pill opens the full menu.
+PillBtn.Activated:Connect(function()
+    toggleMenu(true)
+end)
+
+task.defer(function()
+    pcall(function()
+        RootScreen.Enabled = true
+        MainFrame.Visible = true
+        MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+        MainFrame.Size = UDim2.fromOffset(winW, winH)
+        MiniPill.Visible = false
+    end)
 end)
 
 --// RUNTIME DISPATCHER
