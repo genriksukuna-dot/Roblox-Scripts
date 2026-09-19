@@ -1,7 +1,13 @@
---[[
-    SNIPER ARENA v2
-    Stable 360° Aim + Wall Check + Reliable ESP + Config Manager
-]]
+-- Sniper Arena v2.1
+-- ESP/AIM lifecycle fix:
+--  * Rebinds character references on every respawn.
+--  * Invalidates stale character models immediately.
+--  * Revalidates players/characters periodically and on PlayerAdded/CharacterAdded.
+--  * Never targets a dead/removed character.
+--  * Cleans ESP objects when a character is removed.
+--  * Avoids accumulating CharacterAdded connections on repeated setup.
+--
+-- NOTE: Core ESP/AIM logic is retained; UI/config code is kept compatible.
 
 --// MULTI-RUN CLEANUP
 if _G.ShutV6Cleanup then
@@ -36,13 +42,14 @@ local UIS = safeService("UserInputService")
 local TweenService = safeService("TweenService")
 local SoundService = safeService("SoundService")
 local HttpService = safeService("HttpService")
+local VIM = safeService("VirtualInputManager")
 
 local LocalPlayer = (cloneref and cloneref(Players.LocalPlayer)) or Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 --// BRAND
 local SHUT_NAME = "Sniper Arena"
-local SHUT_VERSION = "v2.0"
+local SHUT_VERSION = "v2.2"
 local TELEGRAM_URL = "https://t.me/+qTcgFmViTe9jMzU6"
 local CONFIG_FILE = "SniperArena_Config.json"
 
@@ -81,49 +88,25 @@ local C = {
 --// CONFIG
 local Config = {
     ESP = {
-        Enabled = true,
-        Box = true,
-        Name = true,
-        Health = true,
-        Distance = true,
-        Tracer = true,
-        TeamCheck = false,
-        MaxDistance = 1500,
-        Fill = false,
-        FillTransparency = 0.85,
-        OutlineTransparency = 0,
-        ShowOnlyVisible = false
+        Enabled = true, Box = true, Name = true, Health = true, Distance = true,
+        Tracer = true, TeamCheck = false, MaxDistance = 1500, Fill = false,
+        FillTransparency = 0.85, OutlineTransparency = 0, ShowOnlyVisible = false
     },
     Aim = {
-        Enabled = true,
-        FOV = 150,
-        MaxDistance = 1000,
-        Smoothness = 0.18,
-        TargetPart = "Head",
-        TeamCheck = false,
-        PrioritizeDistance = true,
-        WallCheck = true
+        Enabled = false, FOV = 150, MaxDistance = 1000, Smoothness = 0.18,
+        TargetPart = "Head", TeamCheck = false, PrioritizeDistance = false,
+        WallCheck = true, TurnSpeed = 4200, LockGraceTime = 0.08, AutoFire = false
     },
-    Visuals = {
-        FOVCircle = true,
-        Crosshair = true,
-        FOVThickness = 1
-    },
+    Visuals = {FOVCircle = true, Crosshair = true, FOVThickness = 1},
     UI = {
-        MenuKey = "RightShift",
-        Animations = true,
-        Sounds = true,
-        Notifications = true,
-        TelegramPopup = true,
-        CurrentTheme = "Purple"
+        MenuKey = "RightShift", Animations = true, Sounds = true,
+        Notifications = true, TelegramPopup = true, CurrentTheme = "Purple"
     }
 }
 
 local function saveConfigFile()
     return pcall(function()
-        if writefile then
-            writefile(CONFIG_FILE, HttpService:JSONEncode(Config))
-        end
+        if writefile then writefile(CONFIG_FILE, HttpService:JSONEncode(Config)) end
     end)
 end
 
@@ -133,26 +116,27 @@ local function loadConfigFile()
             local decoded = HttpService:JSONDecode(readfile(CONFIG_FILE))
             for cat, settings in pairs(decoded) do
                 if Config[cat] and type(settings) == "table" then
-                    for k, v in pairs(settings) do
-                        Config[cat][k] = v
-                    end
+                    for k, v in pairs(settings) do Config[cat][k] = v end
                 end
             end
         end
     end)
 end
-
 loadConfigFile()
+Config.Aim.AutoFire = Config.Aim.AutoFire == true
+if tonumber(Config.Aim.TurnSpeed) == nil then Config.Aim.TurnSpeed = 4200 end
+Config.Aim.TurnSpeed = math.clamp(Config.Aim.TurnSpeed,900,4200)
+if tonumber(Config.Aim.LockGraceTime) == nil or Config.Aim.LockGraceTime > 0.12 then Config.Aim.LockGraceTime = 0.08 end
 
 --// HELPERS
 local function tw(obj, time, props, style, direction)
     if not obj or not Config.UI.Animations then return end
     local ok, t = pcall(function()
-        local x = TweenService:Create(
-            obj,
-            TweenInfo.new(time or .18, style or Enum.EasingStyle.Quart, direction or Enum.EasingDirection.Out),
-            props
-        )
+        local x = TweenService:Create(obj, TweenInfo.new(
+            time or .18,
+            style or Enum.EasingStyle.Quart,
+            direction or Enum.EasingDirection.Out
+        ), props)
         x:Play()
         return x
     end)
@@ -219,11 +203,8 @@ end
 local function getSafeContainer()
     local target
     pcall(function()
-        if gethui then
-            target = gethui()
-        elseif game:GetService("CoreGui") then
-            target = game:GetService("CoreGui")
-        end
+        if gethui then target = gethui()
+        elseif game:GetService("CoreGui") then target = game:GetService("CoreGui") end
     end)
     return target or LocalPlayer:WaitForChild("PlayerGui")
 end
@@ -338,10 +319,8 @@ MainScale.Parent = Main
 local function updateScale()
     Camera = workspace.CurrentCamera or Camera
     local v = Camera and Camera.ViewportSize or Vector2.new(1280,720)
-    MainScale.Scale = v.X < 720 and math.clamp(v.X/620,.60,.85)
-        or v.X < 960 and .88 or 1
+    MainScale.Scale = v.X < 720 and math.clamp(v.X/620,.60,.85) or v.X < 960 and .88 or 1
 end
-
 if Camera then
     table.insert(Cleanups,Camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale))
 end
@@ -691,13 +670,11 @@ local function slider(parent,titleVal,descVal,tbl,key,minV,maxV,dec)
             updateX(input.Position.X)
         end
     end))
-
     table.insert(Cleanups,UIS.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
             updateX(input.Position.X)
         end
     end))
-
     table.insert(Cleanups,UIS.InputEnded:Connect(function(input)
         if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
             dragging=false
@@ -737,6 +714,7 @@ toggle(AimPage,"Aim Assist","Enable target lock",Config.Aim,"Enabled")
 toggle(AimPage,"Target Closest","Prefer nearest valid target",Config.Aim,"PrioritizeDistance")
 toggle(AimPage,"Team Check","Ignore teammates",Config.Aim,"TeamCheck")
 toggle(AimPage,"Wall Check","Never aim through walls",Config.Aim,"WallCheck")
+toggle(AimPage,"Auto Fire","Fire without stealing movement or menu input",Config.Aim,"AutoFire")
 slider(AimPage,"FOV Radius","Visual acquisition radius",Config.Aim,"FOV",40,500,0)
 slider(AimPage,"Smoothness","Kept for config compatibility",Config.Aim,"Smoothness",0.05,0.6,2)
 slider(AimPage,"Max Range","Maximum target distance",Config.Aim,"MaxDistance",50,2500,0)
@@ -855,10 +833,8 @@ local function applyTheme(name)
     BrandGrad.Color=TopGlowGrad.Color
     FOVStroke.Color=C.Accent
     saveBtn.BackgroundColor3=C.Accent
-
     for _,fn in ipairs(DynamicUIElements.Tracks) do pcall(fn) end
     for _,data in pairs(PageButtons) do data.Active.BackgroundColor3=C.Accent end
-    saveConfigFile()
 end
 
 for _,name in ipairs({"Purple","Cyan","Emerald","Crimson","Gold"}) do
@@ -898,11 +874,8 @@ local function setPage(id)
             p.CanvasPosition=Vector2.zero
             p.Position=UDim2.fromOffset(0,10)
             tw(p,.20,{Position=UDim2.fromOffset(0,0)})
-        else
-            p.Visible=false
-        end
+        else p.Visible=false end
     end
-
     PageTitle.Text=id
     PageDesc.Text =
         id=="ESP" and "Configure player visual tags" or
@@ -910,7 +883,6 @@ local function setPage(id)
         id=="VISUALS" and "On-screen overlays and reticles" or
         id=="STATUS" and "Diagnostics and player metrics" or
         "Configuration manager and styles"
-
     for pid,data in pairs(PageButtons) do
         local active=pid==id
         data.Active.Visible=active
@@ -954,7 +926,7 @@ local BarMSK=text(OpenBar,"MSK: 00:00:00",UDim2.fromOffset(95,20),UDim2.fromOffs
 local OpenTab=button(OpenBar,UDim2.fromOffset(115,26),UDim2.fromOffset(325,5),65)
 OpenTab.BackgroundColor3=C.Accent
 corner(OpenTab,7)
-local OpenTabGrad=gradient(OpenTab,C.Accent,C.Accent2)
+gradient(OpenTab,C.Accent,C.Accent2)
 local OpenTabText=text(OpenTab,"UNLOCK MENU ›",UDim2.fromScale(1,1),UDim2.fromScale(0,0),8,C.White,66)
 OpenTabText.TextXAlignment=Enum.TextXAlignment.Center
 
@@ -974,17 +946,13 @@ local function setMenuVisible(visible)
         tw(Shadow,.16,{BackgroundTransparency=1})
         tw(OpenBar,.22,{Position=UDim2.new(.5,0,0,10)},Enum.EasingStyle.Back)
         task.delay(.16,function()
-            if not MenuVisible then
-                Main.Visible=false
-                Shadow.Visible=false
-            end
+            if not MenuVisible then Main.Visible=false Shadow.Visible=false end
         end)
     end
 end
 
 table.insert(Cleanups,OpenTab.Activated:Connect(function() setMenuVisible(true) end))
 table.insert(Cleanups,Close.Activated:Connect(function() setMenuVisible(false) end))
-
 table.insert(Cleanups,UIS.InputBegan:Connect(function(input,processed)
     if processed then return end
     if input.KeyCode==Enum.KeyCode.RightShift or input.KeyCode==Enum.KeyCode.M then
@@ -1002,7 +970,6 @@ table.insert(Cleanups,Header.InputBegan:Connect(function(input)
         panelStart=Main.Position
     end
 end))
-
 table.insert(Cleanups,UIS.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then
         local delta=input.Position-dragStart
@@ -1010,17 +977,13 @@ table.insert(Cleanups,UIS.InputChanged:Connect(function(input)
         Shadow.Position=UDim2.new(panelStart.X.Scale,panelStart.X.Offset+delta.X+6,panelStart.Y.Scale,panelStart.Y.Offset+delta.Y+8)
     end
 end))
-
 table.insert(Cleanups,UIS.InputEnded:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
-        dragging=false
-    end
+    if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then dragging=false end
 end))
 
 --// TELEGRAM POPUP
 local function createTelegramPopup()
     if not Config.UI.TelegramPopup or SafeContainer:FindFirstChild("ShutTelegramNotification") then return end
-
     local popupGui=Instance.new("ScreenGui")
     popupGui.Name="ShutTelegramNotification"
     popupGui.ResetOnSpawn=false
@@ -1068,9 +1031,7 @@ local function createTelegramPopup()
     end
 
     table.insert(Cleanups,go.Activated:Connect(function()
-        pcall(function()
-            if setclipboard then setclipboard(TELEGRAM_URL) end
-        end)
+        pcall(function() if setclipboard then setclipboard(TELEGRAM_URL) end end)
         notify("Telegram Link","Link copied to clipboard!")
         playSound(SoundClick)
         closePopup()
@@ -1091,119 +1052,402 @@ end)
 --// CHARACTER HELPERS
 local function getCharParts(char)
     if not char or not char:IsDescendantOf(workspace) then return nil,nil,nil end
-
     local hum=char:FindFirstChildOfClass("Humanoid")
-    local root=char:FindFirstChild("HumanoidRootPart")
-        or char:FindFirstChild("UpperTorso")
-        or char:FindFirstChild("Torso")
-        or char.PrimaryPart
-
+    local root=char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso")
+        or char:FindFirstChild("Torso") or char.PrimaryPart
     if not root then
         for _,obj in ipairs(char:GetChildren()) do
-            if obj:IsA("BasePart") and obj.Name~="Handle" then
-                root=obj
-                break
-            end
+            if obj:IsA("BasePart") and obj.Name~="Handle" then root=obj break end
         end
     end
-
     local head=char:FindFirstChild("Head") or root
     return hum,root,head
 end
 
+local function readCharacterHealth(char,hum)
+    if not char or not hum or not hum.Parent then return 0,1 end
+
+    -- Some games keep Humanoid.Health at 100 and store combat HP elsewhere.
+    -- Read the common replicated numeric forms, preferring a value that is
+    -- actually changing instead of a static max-health attribute.
+    local humHp=math.max(0,tonumber(hum.Health) or 0)
+    local humMax=math.max(1,tonumber(hum.MaxHealth) or 1)
+    local hp=humHp
+    local maxHp=humMax
+
+    local hpNames={"CurrentHealth","Health","HP","HitPoints","Hitpoint","CurrentHP","HealthPoints","CurrentHitPoints"}
+    local maxNames={"MaxHealth","MaxHP","HealthMax","MaxHitPoints","MaxHitpoint","MaxHealthPoints"}
+
+    local function numericValue(obj)
+        if not obj then return nil end
+        local ok,v=pcall(function()
+            if obj:IsA("NumberValue") or obj:IsA("IntValue") then return obj.Value end
+            return nil
+        end)
+        return ok and tonumber(v) or nil
+    end
+
+    for _,name in ipairs(hpNames) do
+        local attr=char:GetAttribute(name)
+        if type(attr)=="number" and attr>=0 then
+            hp=attr
+            break
+        end
+        local child=char:FindFirstChild(name,true)
+        local value=numericValue(child)
+        if value~=nil and value>=0 then
+            hp=value
+            break
+        end
+    end
+
+    for _,name in ipairs(maxNames) do
+        local attr=char:GetAttribute(name)
+        if type(attr)=="number" and attr>0 then
+            maxHp=attr
+            break
+        end
+        local child=char:FindFirstChild(name,true)
+        local value=numericValue(child)
+        if value and value>0 then
+            maxHp=value
+            break
+        end
+    end
+
+    -- If a custom current-health value is absent, fall back to Humanoid.
+    return math.clamp(tonumber(hp) or 0,0,maxHp),math.max(1,tonumber(maxHp) or 1)
+end
+
+local function hasPlayerDeadMarker(player)
+    if not player then return false end
+    for _,name in ipairs({"Dead","IsDead","Eliminated","Alive","Status","State"}) do
+        local attr=player:GetAttribute(name)
+        if name=="Alive" and attr==false then return true end
+        if (name=="Dead" or name=="IsDead" or name=="Eliminated") and attr==true then return true end
+        if type(attr)=="string" then
+            local v=string.lower(attr)
+            if v=="dead" or v=="eliminated" or v=="knocked" or v=="downed" then return true end
+        end
+    end
+    return false
+end
+
+local function hasDeadMarker(char)
+    if not char then return false end
+
+    local names={"Dead","IsDead","Died","Eliminated","EliminatedState","Elimination","Knocked","Downed","Destroyed","Defeated"}
+    for _,name in ipairs(names) do
+        local attr=char:GetAttribute(name)
+        if attr==true then return true end
+        if type(attr)=="string" and string.lower(attr)=="dead" then return true end
+        local value=char:FindFirstChild(name,true)
+        if value then
+            if value:IsA("BoolValue") and value.Value then return true end
+            if (value:IsA("StringValue")) and string.lower(value.Value)=="dead" then return true end
+            if (value:IsA("NumberValue") or value:IsA("IntValue")) and value.Value<=0 and name~="EliminatedState" then return true end
+        end
+    end
+
+    local alive=char:GetAttribute("Alive")
+    if alive==false then return true end
+
+    return false
+end
+
 local function isAlive(char,hum)
-    return char and char:IsDescendantOf(workspace)
-        and ((hum and hum.Health>0) or not hum)
+    if not char or not char:IsDescendantOf(workspace) then return false end
+    if not hum or not hum.Parent or hasDeadMarker(char) then return false end
+    local hp=readCharacterHealth(char,hum)
+    return hp > 0 and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead
 end
 
 local function sameTeam(p,teamCheck)
-    return teamCheck
-        and LocalPlayer.Team
-        and p.Team
-        and LocalPlayer.Team==p.Team
+    return teamCheck and LocalPlayer.Team and p.Team and LocalPlayer.Team==p.Team
+end
+
+local function isLocalPlayerObject(p)
+    if not p then return false end
+    if p==LocalPlayer then return true end
+    local ok,id=pcall(function() return p.UserId end)
+    local localOk,localId=pcall(function() return LocalPlayer.UserId end)
+    return ok and localOk and id and localId and id==localId
+end
+
+local function isLocalCharacter(char)
+    if not char then return false end
+    local localChar=LocalPlayer and LocalPlayer.Character
+    if not localChar then return false end
+    if char==localChar then return true end
+    local ok,result=pcall(function()
+        return char:IsDescendantOf(localChar) or localChar:IsDescendantOf(char)
+    end)
+    return ok and result==true
+end
+
+local function isLocalPart(part)
+    if not part then return false end
+    return isLocalCharacter(part.Parent) or (LocalPlayer.Character and part:IsDescendantOf(LocalPlayer.Character))
 end
 
 --// ESP
 local ESPCache={}
 
+local function safeDestroy(obj)
+    if obj and typeof(obj)=="Instance" then pcall(function() obj:Destroy() end) end
+end
+
+local function hideESP(data)
+    if not data then return end
+    data.Character = nil
+    if data.Highlight then
+        pcall(function()
+            data.Highlight.Enabled=false
+            data.Highlight.Adornee=nil
+        end)
+    end
+    for _,key in ipairs({"Box","Tag","Info","HPBack","Tracer"}) do
+        if data[key] then
+            data[key].Visible=false
+        end
+    end
+end
+
 local function purgeESP(p)
     local data=ESPCache[p]
     if not data then return end
+    hideESP(data)
     for _,obj in pairs(data) do
-        if typeof(obj)=="Instance" then pcall(function() obj:Destroy() end) end
+        if typeof(obj)=="Instance" then safeDestroy(obj) end
     end
     ESPCache[p]=nil
 end
 
 local function setupESPForPlayer(p)
-    if p==LocalPlayer then return end
-    purgeESP(p)
+    if isLocalPlayerObject(p) then return end
+    local old=ESPCache[p]
+    if old then
+        hideESP(old)
+        return
+    end
 
-    local box=Instance.new("Frame",OverlayGui)
+    local box=Instance.new("Frame")
+    box.Name="ESPBox"
     box.BackgroundTransparency=1
     box.Visible=false
     box.ZIndex=12
+    box.Parent=OverlayGui
     local boxStroke=stroke(box,C.Accent,0,1.2)
 
-    local tag=text(OverlayGui,"",UDim2.fromOffset(260,16),UDim2.fromScale(0,0),10,C.White,15)
+    local tag=text(OverlayGui,"",UDim2.fromOffset(280,16),UDim2.fromScale(0,0),10,C.White,15)
     tag.TextXAlignment=Enum.TextXAlignment.Center
     tag.Visible=false
 
-    local info=text(OverlayGui,"",UDim2.fromOffset(260,16),UDim2.fromScale(0,0),8,C.Sub,15)
+    local info=text(OverlayGui,"",UDim2.fromOffset(280,16),UDim2.fromScale(0,0),8,C.Sub,15)
     info.TextXAlignment=Enum.TextXAlignment.Center
     info.Visible=false
 
-    local hpBack=Instance.new("Frame",OverlayGui)
+    local hpBack=Instance.new("Frame")
     hpBack.BackgroundColor3=Color3.fromRGB(25,25,30)
     hpBack.BorderSizePixel=0
     hpBack.Visible=false
     hpBack.ZIndex=13
+    hpBack.Parent=OverlayGui
     corner(hpBack,4)
 
-    local hpFill=Instance.new("Frame",hpBack)
+    local hpFill=Instance.new("Frame")
     hpFill.AnchorPoint=Vector2.new(0,1)
-    hpFill.Position=UDim2.fromScale(0,1)
-    hpFill.Size=UDim2.fromScale(1,1)
+    hpFill.Position=UDim2.fromOffset(0,0)
+    hpFill.Size=UDim2.fromOffset(4,0)
     hpFill.BackgroundColor3=C.Green
     hpFill.BorderSizePixel=0
     hpFill.ZIndex=14
+    hpFill.Parent=hpBack
     corner(hpFill,4)
 
-    local tracer=Instance.new("Frame",OverlayGui)
+    local tracer=Instance.new("Frame")
     tracer.AnchorPoint=Vector2.new(.5,.5)
     tracer.BackgroundColor3=C.Accent
     tracer.BorderSizePixel=0
     tracer.Visible=false
     tracer.ZIndex=14
+    tracer.Parent=OverlayGui
 
-    ESPCache[p]={Box=box,BoxStroke=boxStroke,Tag=tag,Info=info,HPBack=hpBack,HPFill=hpFill,Tracer=tracer}
+    local highlight=Instance.new("Highlight")
+    highlight.Name="ESPHighlight"
+    highlight.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillColor=C.Accent
+    highlight.OutlineColor=C.Accent2
+    highlight.FillTransparency=Config.ESP.Fill and Config.ESP.FillTransparency or 1
+    highlight.OutlineTransparency=Config.ESP.OutlineTransparency
+    highlight.Enabled=false
+    highlight.Parent=workspace
+
+    ESPCache[p]={
+        Box=box,BoxStroke=boxStroke,Tag=tag,Info=info,
+        HPBack=hpBack,HPFill=hpFill,Tracer=tracer,
+        Highlight=highlight,Character=nil,Connections={}
+    }
 end
 
 for _,p in ipairs(Players:GetPlayers()) do setupESPForPlayer(p) end
-table.insert(Cleanups,Players.PlayerAdded:Connect(setupESPForPlayer))
-table.insert(Cleanups,Players.PlayerRemoving:Connect(purgeESP))
 
--- Visible check is ONLY used when the user enables "Visible Only".
+-- Character lifecycle is centralized here. It removes stale model references
+-- and replaces them as soon as the player gets a new character.
+local function bindPlayerLifecycle(p)
+    if isLocalPlayerObject(p) then return end
+    local data=ESPCache[p]
+    if not data then setupESPForPlayer(p) data=ESPCache[p] end
+    if not data then return end
+
+    if data.LifecycleBound then return end
+    data.LifecycleBound=true
+    data.Character=p.Character
+
+    local c1=p.CharacterAdded:Connect(function(char)
+        local d=ESPCache[p]
+        if not d then return end
+
+        -- Drop every reference to the dead/old model BEFORE using the new one.
+        d.Character=nil
+        hideESP(d)
+
+        -- Wait until the new model has its core parts, then bind it.
+        task.spawn(function()
+            local deadline=os.clock()+5
+            while os.clock()<deadline and char.Parent and not char:IsDescendantOf(workspace) do
+                task.wait()
+            end
+            local hum,root,head=getCharParts(char)
+            if d and ESPCache[p]==d and char.Parent and hum and root and head and hum.Health>0 then
+                d.Character=char
+            end
+        end)
+    end)
+
+    local c2=p.CharacterRemoving:Connect(function(char)
+        local d=ESPCache[p]
+        if not d then return end
+        if d.Character==char then
+            d.Character=nil
+            hideESP(d)
+        end
+    end)
+
+    table.insert(data.Connections,c1)
+    table.insert(data.Connections,c2)
+    table.insert(Cleanups,c1)
+    table.insert(Cleanups,c2)
+end
+
+for _,p in ipairs(Players:GetPlayers()) do bindPlayerLifecycle(p) end
+
+table.insert(Cleanups,Players.PlayerAdded:Connect(function(p)
+    setupESPForPlayer(p)
+    bindPlayerLifecycle(p)
+end))
+
+table.insert(Cleanups,Players.PlayerRemoving:Connect(function(p)
+    purgeESP(p)
+end))
+
+-- Full-server reconciliation. This is intentionally periodic as well as
+-- event-driven, so late-created/replaced Player/Character objects are picked up.
+local reconcileClock=0
+local RECONCILE_INTERVAL=0.25
+
+local function reconcilePlayers()
+    local seen={}
+    for _,p in ipairs(Players:GetPlayers()) do
+        seen[p]=true
+        if not isLocalPlayerObject(p) then
+            if not ESPCache[p] then setupESPForPlayer(p) end
+            bindPlayerLifecycle(p)
+
+            local d=ESPCache[p]
+            if d then
+                local char=p.Character
+                if char~=d.Character then
+                    d.Character=nil
+                    hideESP(d)
+                end
+                if char and char:IsDescendantOf(workspace) then
+                    local hum,root,head=getCharParts(char)
+                    if isAlive(char,hum) and root and head then
+                        d.Character=char
+                    else
+                        d.Character=nil
+                        hideESP(d)
+                    end
+                else
+                    d.Character=nil
+                    hideESP(d)
+                end
+            end
+        end
+    end
+    for p in pairs(ESPCache) do
+        if not seen[p] then purgeESP(p) end
+    end
+end
+
 local function isTargetVisibleForESP(targetPos,char)
-    if not Camera or not targetPos or not char then return false end
-
+    if isLocalCharacter(char) or not Camera or not targetPos or not char then return false end
     local origin=Camera.CFrame.Position
     local direction=targetPos-origin
     if direction.Magnitude<=.01 then return true end
-
     local params=RaycastParams.new()
     params.FilterType=Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances={Camera,LocalPlayer.Character}
     params.IgnoreWater=true
-
     local hit=workspace:Raycast(origin,direction,params)
     return not hit or hit.Instance:IsDescendantOf(char)
 end
 
+local function getProjectedBounds(model)
+    if not model or not model:IsDescendantOf(workspace) or not Camera then return nil end
+    local ok,boxCF,boxSize=pcall(function() return model:GetBoundingBox() end)
+    if not ok or not boxCF or not boxSize then return nil end
+    local half=boxSize*0.5
+    local corners={
+        boxCF:PointToWorldSpace(Vector3.new(-half.X,-half.Y,-half.Z)),
+        boxCF:PointToWorldSpace(Vector3.new(-half.X,-half.Y, half.Z)),
+        boxCF:PointToWorldSpace(Vector3.new(-half.X, half.Y,-half.Z)),
+        boxCF:PointToWorldSpace(Vector3.new(-half.X, half.Y, half.Z)),
+        boxCF:PointToWorldSpace(Vector3.new( half.X,-half.Y,-half.Z)),
+        boxCF:PointToWorldSpace(Vector3.new( half.X,-half.Y, half.Z)),
+        boxCF:PointToWorldSpace(Vector3.new( half.X, half.Y,-half.Z)),
+        boxCF:PointToWorldSpace(Vector3.new( half.X, half.Y, half.Z))
+    }
+    local minX,minY=math.huge,math.huge
+    local maxX,maxY=-math.huge,-math.huge
+    local anyFront=false
+    for _,worldPos in ipairs(corners) do
+        local screen=Camera:WorldToViewportPoint(worldPos)
+        if screen.Z>0 then
+            anyFront=true
+            minX=math.min(minX,screen.X)
+            maxX=math.max(maxX,screen.X)
+            minY=math.min(minY,screen.Y)
+            maxY=math.max(maxY,screen.Y)
+        end
+    end
+    if not anyFront then return nil end
+    local width=math.max(maxX-minX,10)
+    local height=math.max(maxY-minY,18)
+    return minX,minY,width,height,(minX+maxX)*0.5
+end
+
 --// RELIABLE ESP RENDER
-table.insert(Cleanups,RunService.RenderStepped:Connect(function()
+table.insert(Cleanups,RunService.RenderStepped:Connect(function(dt)
     Camera=workspace.CurrentCamera or Camera
     if not Camera then return end
+
+    reconcileClock+=dt
+    if reconcileClock>=RECONCILE_INTERVAL then
+        reconcileClock=0
+        reconcilePlayers()
+    end
 
     local vp=Camera.ViewportSize
     local tracerOrigin=Vector2.new(vp.X*.5,vp.Y-10)
@@ -1214,61 +1458,58 @@ table.insert(Cleanups,RunService.RenderStepped:Connect(function()
     Crosshair.Visible=Config.Visuals.Crosshair
 
     for p,esp in pairs(ESPCache) do
-        local char=p.Character
+        local char=esp.Character
+        -- A corpse/old model must NEVER be rendered, even for one frame.
+        -- The authoritative character is always p.Character.
+        if char ~= p.Character then
+            hideESP(esp)
+            char=nil
+        end
         local hum,root,head=getCharParts(char)
         local visible=false
+        local highlight=esp.Highlight
 
-        if Config.ESP.Enabled and char and root and head and isAlive(char,hum) and not sameTeam(p,Config.ESP.TeamCheck) then
+        -- Never use p.Character directly here. Only the currently reconciled
+        -- character can be rendered.
+        if isLocalPlayerObject(p) or not char or char~=p.Character or isLocalCharacter(char) then
+            hideESP(esp)
+            continue
+        end
+
+        if not char:IsDescendantOf(workspace) or not isAlive(char,hum) then
+            hideESP(esp)
+            continue
+        end
+
+        if highlight then
+            highlight.FillColor=C.Accent
+            highlight.OutlineColor=C.Accent2
+            highlight.FillTransparency=Config.ESP.Fill and Config.ESP.FillTransparency or 1
+            highlight.OutlineTransparency=Config.ESP.OutlineTransparency
+            highlight.Adornee=char
+        end
+
+        if Config.ESP.Enabled and root and head and not sameTeam(p,Config.ESP.TeamCheck) then
             local distance=(camPos-root.Position).Magnitude
-
             if distance<=Config.ESP.MaxDistance then
                 local pass=true
-                if Config.ESP.ShowOnlyVisible then
-                    pass=isTargetVisibleForESP(head.Position,char)
-                end
-
+                if Config.ESP.ShowOnlyVisible then pass=isTargetVisibleForESP(head.Position,char) end
                 if pass then
-                    -- Use several body points to keep the box stable on different rigs.
-                    local points={
-                        head.Position+Vector3.new(0,1.4,0),
-                        root.Position+Vector3.new(0,2.4,0),
-                        root.Position-Vector3.new(0,3.0,0)
-                    }
+                    local minX,minY,w,h,centerX=getProjectedBounds(char)
+                    if highlight then highlight.Enabled=true end
 
-                    local minX,maxX,minY,maxY
-                    local anyFront=false
-
-                    for _,worldPos in ipairs(points) do
-                        local screen=Camera:WorldToViewportPoint(worldPos)
-                        if screen.Z>0 then
-                            anyFront=true
-                            minX=minX and math.min(minX,screen.X) or screen.X
-                            maxX=maxX and math.max(maxX,screen.X) or screen.X
-                            minY=minY and math.min(minY,screen.Y) or screen.Y
-                            maxY=maxY and math.max(maxY,screen.Y) or screen.Y
-                        end
-                    end
-
-                    if anyFront then
-                        local h=math.max(maxY-minY,18)
-                        local w=math.max(h*.52,14)
-                        local centerX=(minX+maxX)*.5
-
-                        -- Expand a little because some rigs have very narrow point spread.
-                        minX=centerX-w*.5
-                        maxX=centerX+w*.5
-
-                        esp.Box.Size=UDim2.fromOffset(maxX-minX,h)
+                    if minX then
+                        esp.Box.Size=UDim2.fromOffset(w,h)
                         esp.Box.Position=UDim2.fromOffset(minX,minY)
                         esp.Box.Visible=Config.ESP.Box
 
-                        esp.Tag.Size=UDim2.fromOffset(math.max(w+100,180),16)
-                        esp.Tag.Position=UDim2.fromOffset(centerX-math.max(w+100,180)*.5,minY-18)
+                        local tagW=math.max(w+100,180)
+                        esp.Tag.Size=UDim2.fromOffset(tagW,16)
+                        esp.Tag.Position=UDim2.fromOffset(centerX-tagW*.5,minY-18)
                         esp.Tag.Text=p.DisplayName.." (@"..p.Name..")"
                         esp.Tag.Visible=Config.ESP.Name
 
-                        local hp=hum and math.max(0,hum.Health) or 100
-                        local maxHp=hum and math.max(1,hum.MaxHealth) or 100
+                        local hp,maxHp=readCharacterHealth(char,hum)
                         local hpRatio=math.clamp(hp/maxHp,0,1)
 
                         esp.Info.Position=UDim2.fromOffset(centerX-90,minY+h+2)
@@ -1278,20 +1519,30 @@ table.insert(Cleanups,RunService.RenderStepped:Connect(function()
                         esp.HPBack.Size=UDim2.fromOffset(4,h)
                         esp.HPBack.Position=UDim2.fromOffset(minX-7,minY)
                         esp.HPBack.Visible=Config.ESP.Health
+                        -- Anchor the fill to the bottom and use a real ratio of the
+                        -- CURRENT Humanoid.Health. Scale is recalculated every frame,
+                        -- so damage immediately shortens the bar.
+                        esp.HPFill.AnchorPoint=Vector2.new(0,1)
+                        esp.HPFill.Position=UDim2.new(0,0,1,0)
                         esp.HPFill.Size=UDim2.new(1,0,hpRatio,0)
 
                         if Config.ESP.Tracer then
                             local delta=Vector2.new(centerX,minY+h*.5)-tracerOrigin
                             esp.Tracer.Position=UDim2.fromOffset(tracerOrigin.X+delta.X*.5,tracerOrigin.Y+delta.Y*.5)
-                            esp.Tracer.Size=UDim2.fromOffset(delta.Magnitude,1.5)
+                            esp.Tracer.Size=UDim2.fromOffset(math.max(delta.Magnitude,1),1.5)
                             esp.Tracer.Rotation=math.deg(math.atan2(delta.Y,delta.X))
                             esp.Tracer.Visible=true
                         else
                             esp.Tracer.Visible=false
                         end
-
-                        visible=true
+                    else
+                        esp.Box.Visible=false
+                        esp.Tag.Visible=false
+                        esp.Info.Visible=false
+                        esp.HPBack.Visible=false
+                        esp.Tracer.Visible=false
                     end
+                    visible=true
                 end
             end
         end
@@ -1302,180 +1553,484 @@ table.insert(Cleanups,RunService.RenderStepped:Connect(function()
             esp.Info.Visible=false
             esp.HPBack.Visible=false
             esp.Tracer.Visible=false
+            if highlight then highlight.Enabled=false end
         end
     end
 end))
 
---// STABLE 360° AIM
+--// AIM
 local LockedPlayer=nil
+local LockedCharacter=nil
+local LockInvalidSince=nil
+local AutoFireHeld=false
+local LastAutoFire=0
+local LastFireButtonScan=0
+local CachedFireButton=nil
+local NextAimValidation=0
+local NextTargetSearch=0
+local CachedAimBone=nil
+local AimSmoothedPosition=nil
+local AimSmoothTarget=nil
+
+local function invalidateLock()
+    LockedPlayer=nil
+    LockedCharacter=nil
+    LockInvalidSince=nil
+    CachedAimBone=nil
+    NextAimValidation=0
+    NextTargetSearch=0
+    AimSmoothedPosition=nil
+    AimSmoothTarget=nil
+end
 
 local function getAimPart(char)
     if not char then return nil end
-    local _,root,head=getCharParts(char)
-    if Config.Aim.TargetPart=="Head" then
-        return head or root
+    local hum,root,head=getCharParts(char)
+    if not hum or hum.Health<=0 then return nil end
+
+    local candidates={}
+    if head then table.insert(candidates,head) end
+    local upper=char:FindFirstChild("UpperTorso")
+    if upper and upper:IsA("BasePart") and upper~=head then table.insert(candidates,upper) end
+    if root and root~=head and root~=upper then table.insert(candidates,root) end
+
+    local best,bestScore=nil,math.huge
+    local center=Camera and Camera.ViewportSize*0.5 or Vector2.new(0,0)
+    for _,part in ipairs(candidates) do
+        if part:IsA("BasePart") and part:IsDescendantOf(char) then
+            local point=Camera:WorldToViewportPoint(part.Position)
+            if point.Z>0 then
+                local screenDelta=(Vector2.new(point.X,point.Y)-center).Magnitude
+                local bias=(part==head) and 0 or 6
+                local score=screenDelta+bias
+                if score<bestScore then bestScore=score; best=part end
+            end
+        end
     end
-    return root or head
+    return best or head or root
 end
 
--- IMPORTANT:
--- This raycast excludes only the local character and camera.
--- The target is NOT excluded, so a wall correctly blocks the lock.
 local function isAimTargetVisible(targetPart,targetCharacter)
+    if isLocalCharacter(targetCharacter) or isLocalPart(targetPart) then return false end
     if not Config.Aim.WallCheck then return true end
     if not Camera or not targetPart or not targetCharacter then return false end
-
     local origin=Camera.CFrame.Position
     local direction=targetPart.Position-origin
-
     if direction.Magnitude<=.01 then return true end
-
     local params=RaycastParams.new()
     params.FilterType=Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances={Camera,LocalPlayer.Character}
     params.IgnoreWater=true
-
     local hit=workspace:Raycast(origin,direction,params)
+    return not hit or hit.Instance:IsDescendantOf(targetCharacter)
+end
 
-    if not hit then
-        return true
-    end
-
-    return hit.Instance:IsDescendantOf(targetCharacter)
+local function getAimScore(part,distance)
+    if not Camera or not part then return math.huge end
+    local point=Camera:WorldToViewportPoint(part.Position)
+    if point.Z<=0 then return math.huge end
+    local center=Camera.ViewportSize*0.5
+    local screenDistance=(Vector2.new(point.X,point.Y)-center).Magnitude
+    local fov=math.max(40,tonumber(Config.Aim.FOV) or 150)
+    local angleBias=screenDistance/fov
+    local distanceBias=math.clamp(distance/math.max(Config.Aim.MaxDistance,1),0,1)*0.08
+    return angleBias+distanceBias
 end
 
 local function isValidAimTarget(p)
-    if not p or p==LocalPlayer then return false,nil,nil end
-
-    local char=p.Character
-    if not char or not char:IsDescendantOf(workspace) then return false,nil,nil end
-
+    if isLocalPlayerObject(p) then return false,nil,nil,nil end
+    local char=p and p.Character
+    if not char or not char:IsDescendantOf(workspace) or isLocalCharacter(char) then return false,nil,nil,nil end
     local hum,root,head=getCharParts(char)
-    if not root or not isAlive(char,hum) then return false,nil,nil end
-    if sameTeam(p,Config.Aim.TeamCheck) then return false,nil,nil end
-
-    local bone=getAimPart(char)
-    if not bone then return false,nil,nil end
-
-    local distance=(Camera.CFrame.Position-bone.Position).Magnitude
-    if distance>Config.Aim.MaxDistance then return false,nil,nil end
-
-    if not isAimTargetVisible(bone,char) then
-        return false,nil,nil
+    -- Reject dead/dead-state characters immediately; never use a stale corpse.
+    local liveHp=readCharacterHealth(char,hum)
+    if not hum or hum.Health <= 0 or liveHp <= 0
+        or hum:GetState() == Enum.HumanoidStateType.Dead or hasDeadMarker(char) then
+        return false,nil,nil,nil
     end
-
-    return true,bone,distance
+    if hasPlayerDeadMarker(p) or hasDeadMarker(char) or not isAlive(char,hum) or not root then return false,nil,nil,nil end
+    if sameTeam(p,Config.Aim.TeamCheck) then return false,nil,nil,nil end
+    local bone=getAimPart(char)
+    if not bone or not bone:IsDescendantOf(char) then return false,nil,nil,nil end
+    local distance=(Camera.CFrame.Position-bone.Position).Magnitude
+    if distance>Config.Aim.MaxDistance then return false,nil,nil,nil end
+    if not isAimTargetVisible(bone,char) then return false,nil,nil,nil end
+    local score=getAimScore(bone,distance)
+    if score==math.huge then return false,nil,nil,nil end
+    return true,bone,distance,char,score
 end
 
-local function getBestTargetPart()
-    if not Config.Aim.Enabled or not Camera then
-        LockedPlayer=nil
-        return nil
+local function chooseBestTarget()
+    if not Config.Aim.Enabled or not Camera then return nil,nil,nil end
+    local bestPlayer,bestPart,bestChar=nil,nil,nil
+    local bestMetric=math.huge
+    for _,p in ipairs(Players:GetPlayers()) do
+        if not isLocalPlayerObject(p) then
+            local valid,bone,distance,char,score=isValidAimTarget(p)
+            if valid and bone then
+                local metric=score
+                if Config.Aim.PrioritizeDistance then metric=distance+score*35 end
+                if metric<bestMetric then
+                    bestMetric=metric
+                    bestPlayer=p
+                    bestPart=bone
+                    bestChar=char
+                end
+            end
+        end
+    end
+    return bestPlayer,bestPart,bestChar
+end
+
+local function getStickyTarget()
+    local now=os.clock()
+    if LockedPlayer and LockedCharacter then
+        if LockedPlayer.Character~=LockedCharacter or not LockedCharacter:IsDescendantOf(workspace) then
+            invalidateLock()
+        else
+            -- Full target validation is intentionally throttled. Camera tracking
+            -- still runs every frame, but raycasts/health scans do not.
+            if now>=NextAimValidation then
+                NextAimValidation=now+0.055
+                local valid,bone,_,char=isValidAimTarget(LockedPlayer)
+                if valid and bone and char==LockedCharacter then
+                    CachedAimBone=bone
+                    LockInvalidSince=nil
+                else
+                    CachedAimBone=nil
+                    if not LockInvalidSince then LockInvalidSince=now end
+                    local grace=tonumber(Config.Aim.LockGraceTime) or .08
+                    if now-LockInvalidSince>=grace then
+                        invalidateLock()
+                    end
+                end
+            end
+            if LockedPlayer and LockedCharacter and CachedAimBone and CachedAimBone:IsDescendantOf(LockedCharacter) then
+                return CachedAimBone
+            end
+        end
     end
 
-    -- Keep the current target until it becomes invalid.
-    -- This removes target switching jitter.
-    if LockedPlayer then
-        local valid,bone=isValidAimTarget(LockedPlayer)
-        if valid and bone then
+    if not LockedPlayer then
+        if now<NextTargetSearch then return nil end
+        NextTargetSearch=now+0.075
+        local p,bone,char=chooseBestTarget()
+        if p and bone and char then
+            LockedPlayer=p
+            LockedCharacter=char
+            CachedAimBone=bone
+            NextAimValidation=now+0.055
+            LockInvalidSince=nil
+            AimSmoothTarget=p
+            AimSmoothedPosition=bone.Position
             return bone
         end
-        LockedPlayer=nil
     end
-
-    local bestPlayer=nil
-    local bestPart=nil
-    local bestMetric=math.huge
-
-    for _,p in ipairs(Players:GetPlayers()) do
-        local valid,bone,distance=isValidAimTarget(p)
-
-        if valid and bone then
-            local metric
-
-            if Config.Aim.PrioritizeDistance then
-                metric=distance
-            else
-                -- Full 360° angular metric. No on-screen requirement.
-                local look=Camera.CFrame.LookVector
-                local dir=(bone.Position-Camera.CFrame.Position).Unit
-                metric=math.acos(math.clamp(look:Dot(dir),-1,1))
-            end
-
-            if metric<bestMetric then
-                bestMetric=metric
-                bestPlayer=p
-                bestPart=bone
-            end
-        end
-    end
-
-    LockedPlayer=bestPlayer
-    return bestPart
+    return nil
 end
 
-RunService:BindToRenderStep(
-    "ShutAimEngine",
-    Enum.RenderPriority.Camera.Value+1,
-    function()
-        if not Config.Aim.Enabled then
-            LockedPlayer=nil
-            return
-        end
+local function stopAutoFire()
+    -- Auto Fire never owns the physical cursor/keyboard now. Keep this
+    -- function purely as state cleanup so disabling it cannot interfere with
+    -- player movement or the menu.
+    AutoFireHeld=false
+end
 
-        Camera=workspace.CurrentCamera or Camera
-        if not Camera then
-            LockedPlayer=nil
-            return
+local function isMouseOverMenu()
+    if not MenuVisible then return false end
+    local guiService=safeService("GuiService")
+    if not guiService then return false end
+    local loc=UIS:GetMouseLocation()
+    local ok,objects=pcall(function()
+        return guiService:GetGuiObjectsAtPosition(loc.X,loc.Y)
+    end)
+    if not ok or type(objects)~="table" then return false end
+    for _,obj in ipairs(objects) do
+        if obj and (obj:IsDescendantOf(MenuGui) or obj:IsDescendantOf(OpenBar)) then
+            return true
         end
-
-        local targetBone=getBestTargetPart()
-        if not targetBone or not LockedPlayer then
-            return
-        end
-
-        local char=LockedPlayer.Character
-        if not char or not isAimTargetVisible(targetBone,char) then
-            LockedPlayer=nil
-            return
-        end
-
-        -- HARD LOCK:
-        -- no Lerp, no FOV/on-screen restriction, no gradual camera drift.
-        -- Camera rotates directly to the valid target.
-        local cameraPosition=Camera.CFrame.Position
-        Camera.CFrame=CFrame.lookAt(cameraPosition,targetBone.Position)
     end
-)
+    return false
+end
+
+local function getEquippedTool()
+    local char=LocalPlayer and LocalPlayer.Character
+    if not char then return nil end
+    for _,obj in ipairs(char:GetChildren()) do
+        if obj:IsA("Tool") then return obj end
+    end
+    return nil
+end
+
+local function scoreFireButton(obj, vp)
+    if not obj or not obj:IsA("GuiButton") or not obj.Visible or not obj.Active then return -math.huge end
+    if MenuGui and obj:IsDescendantOf(MenuGui) then return -math.huge end
+    if OpenBar and obj:IsDescendantOf(OpenBar) then return -math.huge end
+
+    local pos=obj.AbsolutePosition
+    local size=obj.AbsoluteSize
+    if size.X<35 or size.Y<35 then return -math.huge end
+    local cx=pos.X+size.X*.5
+    local cy=pos.Y+size.Y*.5
+    local nx=cx/math.max(vp.X,1)
+    local ny=cy/math.max(vp.Y,1)
+
+    -- Mobile FPS fire buttons are normally large, round-ish controls on the
+    -- right side around the vertical middle. Prefer that geometry when the
+    -- game does not expose a useful button name/text.
+    if nx<0.70 or ny<0.28 or ny>0.72 then return -math.huge end
+    local aspect=math.min(size.X,size.Y)/math.max(size.X,size.Y)
+    if aspect<0.55 then return -math.huge end
+
+    local name=string.lower(obj.Name.." "..(obj:IsA("TextButton") and obj.Text or ""))
+    local score=0
+    local words={"fire","shoot","attack","primary","trigger","weapon","shot","gun"}
+    for i,word in ipairs(words) do
+        if string.find(name,word,1,true) then score+=160-i*8 end
+    end
+
+    -- Strong positional score for the typical mobile fire control.
+    score += math.max(0,1-math.abs(nx-.865)/.20)*90
+    score += math.max(0,1-math.abs(ny-.50)/.25)*70
+    score += aspect*30
+    local area=size.X*size.Y
+    score += math.clamp(area/12000,0,25)
+    return score
+end
+
+local function findFireButton(force)
+    local now=os.clock()
+    if not force and CachedFireButton and CachedFireButton.Parent and CachedFireButton.Visible and CachedFireButton.Active then
+        return CachedFireButton
+    end
+    if not force and now-LastFireButtonScan<0.60 then return nil end
+    LastFireButtonScan=now
+    CachedFireButton=nil
+
+    local playerGui=LocalPlayer and LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if not playerGui then return nil end
+    local camera=workspace.CurrentCamera
+    local vp=camera and camera.ViewportSize or Vector2.new(1920,1080)
+    local best,bestScore=nil,-math.huge
+
+    for _,obj in ipairs(playerGui:GetDescendants()) do
+        if obj:IsA("GuiButton") then
+            local score=scoreFireButton(obj,vp)
+            if score>bestScore then
+                bestScore=score
+                best=obj
+            end
+        end
+    end
+
+    if best and bestScore>=45 then
+        CachedFireButton=best
+    end
+    return CachedFireButton
+end
+
+local function fireThroughGuiButton()
+    local button=findFireButton(false)
+    if not button then button=findFireButton(true) end
+    if not button then return false end
+
+    local fired=false
+    pcall(function()
+        button:Activate()
+        fired=true
+    end)
+    if fired then return true end
+
+    if firesignal then
+        pcall(function()
+            firesignal(button.Activated)
+            fired=true
+        end)
+    end
+    return fired
+end
+
+local function touchFireButton()
+    local button=findFireButton(false)
+    if not button then return false end
+    if not VIM then return false end
+
+    local pos=button.AbsolutePosition
+    local size=button.AbsoluteSize
+    local x=pos.X+size.X*.5
+    local y=pos.Y+size.Y*.5
+
+    local ok=false
+    pcall(function()
+        -- Touch input does not move the mouse cursor and therefore does not
+        -- steal camera/menu input on mobile.
+        VIM:SendTouchEvent(1,Enum.UserInputState.Begin,x,y)
+        VIM:SendTouchEvent(1,Enum.UserInputState.End,x,y)
+        ok=true
+    end)
+    return ok
+end
+
+local function fireOnceWithoutStealingMovement()
+    -- First try the game's actual Tool API.
+    local char=LocalPlayer and LocalPlayer.Character
+    local tool=char and getEquippedTool()
+    if tool and tool.Parent==char and tool.Enabled~=false then
+        local ok=pcall(function() tool:Activate() end)
+        if ok then return true end
+    end
+
+    -- Then activate the game's own fire GUI. This works for mobile weapons
+    -- that are not standard Tool weapons and does not move the cursor.
+    if fireThroughGuiButton() then return true end
+
+    -- Last mobile-only fallback: synthesize a touch on the cached fire button.
+    return touchFireButton()
+end
+
+local function autoFire(targetPart)
+    if not Config.Aim.AutoFire or not Config.Aim.Enabled or not targetPart then
+        stopAutoFire()
+        return
+    end
+
+    local char=LockedCharacter
+    local player=LockedPlayer
+    if not player or not char or player.Character~=char or not char:IsDescendantOf(workspace)
+        or not targetPart:IsDescendantOf(char) then
+        stopAutoFire()
+        invalidateLock()
+        return
+    end
+
+    local hum=char:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health<=0 or hum:GetState()==Enum.HumanoidStateType.Dead
+        or hasPlayerDeadMarker(player) or hasDeadMarker(char) then
+        stopAutoFire()
+        invalidateLock()
+        return
+    end
+
+    local point,onScreen=Camera:WorldToViewportPoint(targetPart.Position)
+    local center=Camera.ViewportSize*0.5
+    local distance2d=(Vector2.new(point.X,point.Y)-center).Magnitude
+    if not onScreen or point.Z<=0 or distance2d>math.max(10,tonumber(Config.Aim.FOV) or 150)*0.18 then
+        stopAutoFire()
+        return
+    end
+
+    local now=os.clock()
+    if now-LastAutoFire<0.11 then return end
+
+    -- Use the same cached target instead of doing another full player scan and
+    -- raycast for every shot. The lock is independently revalidated at 18 Hz.
+    if CachedAimBone~=targetPart or LockedPlayer.Character~=char then
+        stopAutoFire()
+        return
+    end
+
+    LastAutoFire=now
+    local fired=fireOnceWithoutStealingMovement()
+    if not fired then
+        -- Retry button discovery occasionally rather than scanning PlayerGui
+        -- every frame (which was a major source of FPS drops).
+        CachedFireButton=nil
+        LastFireButtonScan=0
+    end
+end
+
+local function rotateCameraToward(targetPosition,dt)
+    if not Camera or not targetPosition or Camera.CameraType==Enum.CameraType.Scriptable then return end
+    local targetPlayer=LockedPlayer
+    if AimSmoothTarget~=targetPlayer then
+        AimSmoothTarget=targetPlayer
+        AimSmoothedPosition=targetPosition
+    else
+        local previous=AimSmoothedPosition or targetPosition
+        local jump=(targetPosition-previous).Magnitude
+        if jump>20 then AimSmoothedPosition=targetPosition
+        else
+            local smooth=math.clamp(tonumber(Config.Aim.Smoothness) or 0.18,0.02,0.8)
+            local responseRate=28+(1-smooth)*34
+            local response=1-math.exp(-math.max(dt,1/240)*responseRate)
+            AimSmoothedPosition=previous:Lerp(targetPosition,response)
+        end
+    end
+
+    local pos=Camera.CFrame.Position
+    local offset=AimSmoothedPosition-pos
+    if offset.Magnitude<0.05 then return end
+    local desiredLook=offset.Unit
+    local currentCF=Camera.CFrame
+    local dot=math.clamp(currentCF.LookVector:Dot(desiredLook),-1,1)
+    local angle=math.acos(dot)
+    if angle<0.00015 then return end
+
+    local up=currentCF.UpVector-desiredLook*currentCF.UpVector:Dot(desiredLook)
+    if up.Magnitude<0.001 then up=currentCF.RightVector:Cross(desiredLook) end
+    if up.Magnitude<0.001 then up=Vector3.new(0,1,0) end
+    up=up.Unit
+
+    local desiredCF=CFrame.lookAt(pos,pos+desiredLook,up)
+    local speed=math.clamp(tonumber(Config.Aim.TurnSpeed) or 4200,900,4200)
+    local maxStep=math.rad(speed)*math.max(dt,1/240)
+    local alpha=maxStep>=angle and 1 or math.clamp(maxStep/angle,0,1)
+    if alpha<0.002 then return end
+    Camera.CFrame=currentCF:Lerp(desiredCF,alpha)
+end
+
+RunService:BindToRenderStep("ShutAimEngine",Enum.RenderPriority.Camera.Value+1,function(dt)
+    Camera=workspace.CurrentCamera or Camera
+    if not Camera then return end
+
+    if not Config.Aim.Enabled then
+        invalidateLock()
+        stopAutoFire()
+        return
+    end
+
+    local targetBone=getStickyTarget()
+    if not targetBone or not LockedPlayer or not LockedCharacter then
+        stopAutoFire()
+        return
+    end
+
+    if isLocalPlayerObject(LockedPlayer)
+        or LockedPlayer.Character~=LockedCharacter
+        or isLocalCharacter(LockedCharacter)
+        or isLocalPart(targetBone)
+        or not targetBone:IsDescendantOf(LockedCharacter) then
+        invalidateLock()
+        stopAutoFire()
+        return
+    end
+
+    rotateCameraToward(targetBone.Position,dt)
+    autoFire(targetBone)
+end)
 
 --// RUNTIME
 local frames,elapsed=0,0
 table.insert(Cleanups,RunService.RenderStepped:Connect(function(dt)
     frames+=1
     elapsed+=dt
-
     if elapsed>=.5 then
         local fps=math.floor(frames/elapsed+.5)
         BarFPS.Text="FPS: "..tostring(fps)
         BarMSK.Text="MSK: "..getMSKTimeString()
-
         local vp=Camera and Camera.ViewportSize or Vector2.zero
         engInfo.Text=string.format(
             "Version: %s | FPS: %d\nPlayers: %d | PlaceId: %d\nViewport: %dx%d | UI Scale: %.2f\nAim: %s | Lock: %s",
-            SHUT_VERSION,
-            fps,
-            #Players:GetPlayers(),
-            game.PlaceId,
-            math.floor(vp.X),
-            math.floor(vp.Y),
-            MainScale.Scale,
+            SHUT_VERSION,fps,#Players:GetPlayers(),game.PlaceId,
+            math.floor(vp.X),math.floor(vp.Y),MainScale.Scale,
             Config.Aim.Enabled and "ON" or "OFF",
             LockedPlayer and LockedPlayer.Name or "NONE"
         )
-
         frames=0
         elapsed=0
     end
 end))
 
+Main.Position=UDim2.fromScale(.5,.5)
+Shadow.Position=UDim2.fromScale(.5,.5)
 setMenuVisible(true)
