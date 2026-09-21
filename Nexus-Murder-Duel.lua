@@ -1,8 +1,3 @@
---============================================================
--- NEXUS MURDER DUEL • VEXAL FUNCTION PORT
--- Custom GUI only. Feature logic is based on the supplied Vexal script.
---============================================================
-
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
