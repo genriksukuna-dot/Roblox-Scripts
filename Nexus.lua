@@ -151,6 +151,204 @@ local CONFIG = {
             },
         },
 
+
+        {
+            Id = "MurderDuel",
+            Title = "MURDER DUEL",
+            Category = "SHUTER",
+            Description = "Full Murder Duel profile with combat automation, kill-all tools, ability controls, duel-pad automation, FOV shooting, ESP and movement utilities.",
+            AssetId = "138729049229616",
+            PlaceId = "138729049229616",
+            ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-Murder-Duel.lua",
+            Accent = Color3.fromRGB(185, 105, 255),
+            Accent2 = Color3.fromRGB(83, 231, 255),
+            Features = {
+                { Category = "COMBAT", Items = {
+                    "Auto UnAnchor Character",
+                    "Remove Gun Cooldown",
+                    "Autoshoot",
+                    "Autoshoot Distance",
+                    "Autoshoot Cooldown",
+                    "Auto Throw Knife",
+                    "Throw Distance",
+                    "Throw Cooldown",
+                    "Triggerbot",
+                    "Triggerbot Cooldown",
+                } },
+                { Category = "KILL ALL", Items = {
+                    "Kill All Players Once - Gun",
+                    "Auto Kill Players - Gun",
+                    "Equip Gun",
+                    "Kill All Players Once - Knife",
+                    "Auto Kill Players - Knife",
+                    "Equip Knife",
+                } },
+                { Category = "ABILITY", Items = {
+                    "Auto Shroud Players",
+                    "Low Executor Mode",
+                    "Shrouds / Enemy",
+                    "Remove Sprint Cooldown",
+                    "Remove Dash Cooldown",
+                    "Remove Shroud Cooldown",
+                    "Remove Soul Reap Combat Delay",
+                    "Sprint Cooldown",
+                    "Dash Cooldown",
+                    "Shroud Cooldown",
+                    "Soul Reap Combat Delay",
+                    "Sprint Time",
+                    "Sprint Boost",
+                    "Soul Reap Time",
+                    "Soul Reap Speed Boost",
+                    "Propeller Jump Boost",
+                    "Shroud Time",
+                    "Shroud Projectile Speed",
+                    "Shroud Projectile Range",
+                } },
+                { Category = "TELEPORT", Items = {
+                    "Auto Walk To Duel Pads",
+                    "Prefer Occupied Locations With Free Slot",
+                    "Find Occupied + Free Slot",
+                    "Find Best Available Pad",
+                    "Stop Auto Walk",
+                    "Refresh Duel Pad Buttons",
+                    "Walk To 1v1 Duel Pad",
+                    "Walk To 2v2 Duel Pad",
+                    "Walk To 3v3 Duel Pad",
+                    "Walk To 4v4 Duel Pad",
+                    "Noclip While Auto Walking",
+                } },
+                { Category = "FOV", Items = {
+                    "Enable FOV Circle",
+                    "Autoshoot FOV",
+                    "FOV Manual Shoot",
+                    "FOV Circle Size",
+                    "FOV Shoot Cooldown",
+                } },
+                { Category = "ESP", Items = {
+                    "ESP Charms",
+                    "ESP Skeleton",
+                    "ESP Tracers",
+                    "Hitbox Expander",
+                    "Hitbox Size",
+                    "Team Color",
+                    "Enemy Color",
+                    "Cycle ESP Colors",
+                } },
+                { Category = "MOVEMENT / MISC", Items = {
+                    "Auto Spin",
+                    "Noclip",
+                    "Enable Speed Changer",
+                    "Walk Speed",
+                    "Live Match Status",
+                    "Live Enemy Count",
+                } },
+                { Category = "STATUS", Items = {
+                    "Match State",
+                    "Match Enemy Count",
+                    "Gun Ready State",
+                    "Platform Detection",
+                    "Ping",
+                    "Player Display Name",
+                    "Place ID",
+                    "Script Runtime State",
+                } },
+            },
+        },
+        {
+            Id = "Nights99",
+            Title = "99 NIGHTS IN THE FOREST",
+            Category = "SURVIVAL",
+            Description = "Complete 99 Nights in the Forest survival profile with combat, automation, ESP, movement, teleport and utility modules.",
+            AssetId = "130857995818038",
+            ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-99-Night.lua",
+            Accent = Color3.fromRGB(92, 205, 112),
+            Accent2 = Color3.fromRGB(54, 180, 92),
+            Features = {
+                { Category = "HOME", Items = {
+                    "Refresh ESP",
+                    "Bring All Items",
+                    "Bring Weapons",
+                    "Bring Food",
+                    "Bring Scrap",
+                    "Bring Gems",
+                    "Bring Heals",
+                    "Bring Enemy Drops",
+                    "Open All Item Chests",
+                    "God Mode",
+                    "Teleport To Camp",
+                } },
+                { Category = "COMBAT", Items = {
+                    "Combat Engine",
+                    "Kill Aura",
+                    "Tree Aura",
+                    "Freeze Enemies",
+                    "Kill All Enemies",
+                    "Bring Enemy Drops",
+                    "Chop All Trees",
+                    "Kill Aura Radius",
+                    "Tree Radius",
+                } },
+                { Category = "AUTOMATION", Items = {
+                    "Auto Chop",
+                    "Auto Eat",
+                    "Auto Heal",
+                    "Auto Fuel",
+                    "Campfire Zone Feed",
+                    "Bring Items",
+                    "Bring Trees",
+                    "Bring Chopped",
+                    "Auto Plant",
+                    "Auto Cook",
+                    "Bring Food",
+                    "Bring Fuel",
+                    "Bring Weapons",
+                    "Bring Scrap",
+                    "Bring Gems",
+                    "Bring Heals",
+                    "Bring Armor",
+                    "Bring Explosives",
+                    "Open All Item Chests",
+                } },
+                { Category = "VISUALS", Items = {
+                    "Players ESP",
+                    "Enemy ESP",
+                    "Item ESP",
+                    "Chest ESP",
+                    "Child ESP",
+                    "Fullbright",
+                    "No Fog",
+                    "Instant Interact",
+                    "Refresh ESP",
+                    "Clear ESP",
+                } },
+                { Category = "MOVEMENT", Items = {
+                    "Speed",
+                    "Walk Speed",
+                    "Fly",
+                    "Fly Speed",
+                    "No Clip",
+                    "Infinite Jump",
+                    "Anti AFK",
+                } },
+                { Category = "TELEPORT", Items = {
+                    "Teleport To Camp",
+                    "Teleport To Named Location",
+                    "Teleport To Player",
+                    "Player Name / Display Name Search",
+                    "Teleport To Cursor",
+                    "Teleport Helpers",
+                } },
+                { Category = "SETTINGS", Items = {
+                    "Rebuild UI",
+                    "Restore Lighting",
+                    "Restore Movement",
+                    "Clear ESP",
+                    "Unload Nexus",
+                    "Saved Original Movement / Lighting State",
+                } },
+            },
+        },
+
         {
             Id = "TowerOfHell",
             Title = "TOWER OF HELL",
@@ -771,6 +969,7 @@ end
 local AllButton = createSidebarButton("All", "ALL", 8)
 local ShuterButton = createSidebarButton("Shuter", "SHUTER", 56)
 local ObiButton = createSidebarButton("Obi", "OBI", 104)
+local SurvivalButton = createSidebarButton("Survival", "SURVIVAL", 152)
 
 task.defer(function()
     task.wait()
@@ -1799,10 +1998,18 @@ local function createFeatureCategory(cfg, categoryData, order)
         Check.Size = UDim2.fromOffset(20, 31)
         Check.ZIndex = 105
 
-        local Name = createText(Item, featureName, 11, COLORS.Text, Enum.Font.GothamMedium)
+        local Name = createText(Item, featureName, 9, COLORS.Text, Enum.Font.GothamMedium)
         Name.Position = UDim2.new(0, 31, 0, 0)
         Name.Size = UDim2.new(1, -40, 1, 0)
         Name.ZIndex = 105
+        Name.TextWrapped = true
+        Name.TextYAlignment = Enum.TextYAlignment.Center
+        do
+            local featureConstraint = Instance.new("UITextSizeConstraint")
+            featureConstraint.MinTextSize = 7
+            featureConstraint.MaxTextSize = 9
+            featureConstraint.Parent = Name
+        end
     end
 
     local bottomPadding = Instance.new("UIPadding")
@@ -1954,22 +2161,42 @@ local function createCard(cfg, order)
     AccentLine.Parent = Card
     round(AccentLine, 2)
 
-    local GameTitle = createText(Card, cfg.Title, 16, COLORS.White, Enum.Font.GothamBold)
+    local GameTitle = createText(Card, cfg.Title, 13, COLORS.White, Enum.Font.GothamBold)
     GameTitle.Position = UDim2.new(0, 10, 0, 165)
-    GameTitle.Size = UDim2.new(1, -20, 0, 22)
+    GameTitle.Size = UDim2.new(1, -20, 0, 29)
+    GameTitle.TextWrapped = true
+    GameTitle.TextYAlignment = Enum.TextYAlignment.Top
     GameTitle.ZIndex = 8
+    do
+        local titleConstraint = Instance.new("UITextSizeConstraint")
+        titleConstraint.MinTextSize = 10
+        titleConstraint.MaxTextSize = 13
+        titleConstraint.Parent = GameTitle
+    end
 
-    local Desc = createText(Card, cfg.Description, 10, COLORS.Muted, Enum.Font.GothamMedium)
-    Desc.Position = UDim2.new(0, 10, 0, 189)
-    Desc.Size = UDim2.new(1, -20, 0, 29)
+    local Desc = createText(Card, cfg.Description, 8, COLORS.Muted, Enum.Font.GothamMedium)
+    Desc.Position = UDim2.new(0, 10, 0, 196)
+    Desc.Size = UDim2.new(1, -20, 0, 31)
     Desc.TextWrapped = true
     Desc.TextYAlignment = Enum.TextYAlignment.Top
     Desc.ZIndex = 8
+    do
+        local descConstraint = Instance.new("UITextSizeConstraint")
+        descConstraint.MinTextSize = 7
+        descConstraint.MaxTextSize = 9
+        descConstraint.Parent = Desc
+    end
 
-    local CountText = createText(Card, tostring(countFeatures(cfg)) .. " FUNCTIONS", 9, COLORS.DarkText, Enum.Font.GothamBold)
-    CountText.Position = UDim2.new(0, 10, 0, 222)
-    CountText.Size = UDim2.new(0.5, -10, 0, 16)
+    local CountText = createText(Card, tostring(countFeatures(cfg)) .. " FUNCTIONS", 8, COLORS.DarkText, Enum.Font.GothamBold)
+    CountText.Position = UDim2.new(0, 10, 0, 231)
+    CountText.Size = UDim2.new(0.56, -10, 0, 15)
     CountText.ZIndex = 8
+    do
+        local countConstraint = Instance.new("UITextSizeConstraint")
+        countConstraint.MinTextSize = 7
+        countConstraint.MaxTextSize = 9
+        countConstraint.Parent = CountText
+    end
 
     local AllFunctionality = Instance.new("TextButton")
     AllFunctionality.Size = UDim2.new(1, -20, 0, 30)
@@ -1977,7 +2204,7 @@ local function createCard(cfg, order)
     AllFunctionality.BackgroundColor3 = Color3.fromRGB(26, 29, 42)
     AllFunctionality.Text = "ALL FUNCTIONALITY"
     AllFunctionality.TextColor3 = COLORS.Text
-    AllFunctionality.TextSize = 10
+    AllFunctionality.TextSize = 8
     AllFunctionality.Font = Enum.Font.GothamBold
     AllFunctionality.AutoButtonColor = false
     AllFunctionality.ZIndex = 9
@@ -1993,7 +2220,7 @@ local function createCard(cfg, order)
     LoadScript.BackgroundColor3 = Color3.fromRGB(0, 180, 135)
     LoadScript.Text = "LOAD SCRIPT"
     LoadScript.TextColor3 = COLORS.White
-    LoadScript.TextSize = 10
+    LoadScript.TextSize = 8
     LoadScript.Font = Enum.Font.GothamBold
     LoadScript.AutoButtonColor = false
     LoadScript.ZIndex = 9
@@ -2087,6 +2314,7 @@ selectCategory("ALL")
 AllButton.Activated:Connect(function() selectCategory("ALL") end)
 ShuterButton.Activated:Connect(function() selectCategory("SHUTER") end)
 ObiButton.Activated:Connect(function() selectCategory("OBI") end)
+SurvivalButton.Activated:Connect(function() selectCategory("SURVIVAL") end)
 FooterCredits.Activated:Connect(function() selectCategory("CREDITS") end)
 Search:GetPropertyChangedSignal("Text"):Connect(updateCardVisibility)
 
