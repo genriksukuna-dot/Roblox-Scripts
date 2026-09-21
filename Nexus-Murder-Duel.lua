@@ -1,19 +1,3 @@
---============================================================
--- NEXUS MURDER DUEL
--- Compact Anime UI • Mobile + PC
--- LocalScript • Fixed Build 10
---
--- Main fix:
---   ESP keeps Skeleton/labels; the old ESP Line/tracer is removed.
---
--- Other fixes:
---   --   • Skeleton is projected directly into a full-screen mobile-safe overlay.
---   • Teleport Follow keeps the player behind the selected opponent and uses native Tool activation.
---   • Fire is gated by target visibility + aim alignment to reduce misses.
---   • Manual UI scale is respected.
---   • Mobile/PC menu drag is supported.
---============================================================
-
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
