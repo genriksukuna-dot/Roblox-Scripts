@@ -1,8 +1,24 @@
+--============================================================
+-- NEXUS MURDER DUEL
+-- Compact Anime UI • Mobile + PC
+-- LocalScript • Fixed Build 10
+--
+-- Main fix:
+--   ESP keeps Skeleton/labels; the old ESP Line/tracer is removed.
+--
+-- Other fixes:
+--   • Skeleton is projected directly into a full-screen mobile-safe overlay.
+--   • Teleport Follow keeps the player behind the selected opponent and uses native Tool activation.
+--   • Fire is gated by target visibility + aim alignment to reduce misses.
+--   • Manual UI scale is respected.
+--   • Mobile/PC menu drag is supported.
+--============================================================
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
 local GuiService = game:GetService("GuiService")
+local Stats = game:GetService("Stats")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -161,12 +177,23 @@ local function getDevice()
 end
 
 local function getPlatform()
-    local ok, result = pcall(function()
-        return GuiService:GetPlatform()
-    end)
-    if ok and result then
-        return tostring(result):gsub("Enum.Platform.", "")
+    -- Delta/executor compatibility: some clients expose GuiService but do not
+    -- expose GetPlatform(). Do not call a possibly-missing API.
+    if UserInputService.TouchEnabled then
+        if UserInputService.KeyboardEnabled then
+            return "Touch + Keyboard"
+        end
+        return "Touch"
     end
+
+    if UserInputService.GamepadEnabled then
+        return "Gamepad"
+    end
+
+    if UserInputService.KeyboardEnabled then
+        return "Keyboard / Mouse"
+    end
+
     return "Unknown"
 end
 
@@ -199,6 +226,23 @@ local function getHead(player)
     local char = player and player.Character
     return char and (char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso"))
 end
+
+local function findPart(character, ...)
+    if not character then
+        return nil
+    end
+
+    for i = 1, select("#", ...) do
+        local name = select(i, ...)
+        local part = character:FindFirstChild(name)
+        if part and part:IsA("BasePart") then
+            return part
+        end
+    end
+
+    return nil
+end
+
 
 local function getTeamKey(player)
     if not player then
