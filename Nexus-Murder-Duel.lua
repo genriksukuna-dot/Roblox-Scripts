@@ -94,7 +94,7 @@ local Main = track(Instance.new("Frame"))
 Main.Name = "Main"
 Main.AnchorPoint = Vector2.new(0.5, 0.5)
 Main.Position = UDim2.fromScale(0.5, 0.52)
-Main.Size = UDim2.fromOffset(610, 460)
+Main.Size = UDim2.fromOffset(470, 345)
 Main.BackgroundColor3 = C.BG
 Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
@@ -115,14 +115,14 @@ gradient.Rotation = 20
 gradient.Parent = Main
 
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1,0,0,58)
+Header.Size = UDim2.new(1,0,0,50)
 Header.BackgroundTransparency = 1
 Header.Active = true
 Header.Parent = Main
 
 local HeaderLine = Instance.new("Frame")
-HeaderLine.Position = UDim2.fromOffset(18,49)
-HeaderLine.Size = UDim2.new(1,-36,0,2)
+HeaderLine.Position = UDim2.fromOffset(16,42)
+HeaderLine.Size = UDim2.new(1,-32,0,2)
 HeaderLine.BorderSizePixel = 0
 HeaderLine.Parent = Header
 addCorner(HeaderLine,99)
@@ -132,30 +132,31 @@ hg.Parent = HeaderLine
 
 local Brand = Instance.new("TextLabel")
 Brand.BackgroundTransparency = 1
-Brand.Position = UDim2.fromOffset(18,7)
+Brand.Position = UDim2.fromOffset(15,6)
 Brand.Size = UDim2.new(0.7,0,0,24)
 Brand.Font = BOLD
-Brand.Text = "✦ NEXUS VEXAL"
-Brand.TextSize = 15
+Brand.Text = "✦ NEXUS MURDER DUEL"
+Brand.TextSize = 13
 Brand.TextColor3 = C.CYAN
 Brand.TextXAlignment = Enum.TextXAlignment.Left
 Brand.Parent = Header
 
 local Sub = Instance.new("TextLabel")
 Sub.BackgroundTransparency = 1
-Sub.Position = UDim2.fromOffset(19,30)
+Sub.Position = UDim2.fromOffset(16,26)
 Sub.Size = UDim2.new(0.7,0,0,16)
 Sub.Font = FONT
-Sub.Text = "FULL VEXAL FEATURE PACK • CUSTOM UI"
-Sub.TextSize = 8
+Sub.Text = ""
+Sub.TextSize = 7
 Sub.TextColor3 = C.MUTED
+Sub.Visible = false
 Sub.TextXAlignment = Enum.TextXAlignment.Left
 Sub.Parent = Header
 
 local Tag = Instance.new("TextLabel")
 Tag.AnchorPoint = Vector2.new(1,0)
-Tag.Position = UDim2.new(1,-50,0,12)
-Tag.Size = UDim2.fromOffset(56,22)
+Tag.Position = UDim2.new(1,-44,0,9)
+Tag.Size = UDim2.fromOffset(48,20)
 Tag.BackgroundColor3 = C.PANEL3
 Tag.BorderSizePixel = 0
 Tag.Font = BOLD
@@ -168,8 +169,8 @@ addStroke(Tag,C.ACCENT,1,0.55)
 
 local Min = Instance.new("TextButton")
 Min.AnchorPoint = Vector2.new(1,0)
-Min.Position = UDim2.new(1,-16,0,10)
-Min.Size = UDim2.fromOffset(28,28)
+Min.Position = UDim2.new(1,-12,0,8)
+Min.Size = UDim2.fromOffset(26,26)
 Min.BackgroundColor3 = C.PANEL2
 Min.BorderSizePixel = 0
 Min.Text = "–"
@@ -181,22 +182,58 @@ Min.Parent = Header
 addCorner(Min,8)
 addStroke(Min,C.CYAN,1,0.55)
 
+local updateMenuScale
+
 local OpenButton = track(Instance.new("TextButton"))
 OpenButton.AnchorPoint = Vector2.new(1,0)
-OpenButton.Position = UDim2.fromOffset(62,80)
-OpenButton.Size = UDim2.fromOffset(46,46)
+OpenButton.Position = UDim2.fromOffset(70,108)
+OpenButton.Size = UDim2.fromOffset(54,54)
 OpenButton.BackgroundColor3 = C.PANEL2
 OpenButton.BorderSizePixel = 0
-OpenButton.Text = "N"
-OpenButton.TextSize = 14
+OpenButton.Text = "ϟ"
+OpenButton.TextSize = 20
 OpenButton.Font = BOLD
 OpenButton.TextColor3 = C.TEXT
 OpenButton.AutoButtonColor = false
 OpenButton.Visible = false
 OpenButton.ZIndex = 500
 OpenButton.Parent = Gui
-addCorner(OpenButton,12)
-addStroke(OpenButton,C.ACCENT,1.2,0.1)
+addCorner(OpenButton,15)
+addStroke(OpenButton,C.ACCENT,1.4,0.08)
+
+do
+    local g = Instance.new("UIGradient")
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(39, 24, 76)),
+        ColorSequenceKeypoint.new(0.52, Color3.fromRGB(22, 52, 79)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 23, 67)),
+    })
+    g.Rotation = 25
+    g.Parent = OpenButton
+
+    local ring = Instance.new("Frame")
+    ring.Name = "LauncherRing"
+    ring.AnchorPoint = Vector2.new(0.5,0.5)
+    ring.Position = UDim2.fromScale(0.5,0.5)
+    ring.Size = UDim2.fromOffset(36,36)
+    ring.BackgroundTransparency = 1
+    ring.BorderSizePixel = 0
+    ring.ZIndex = 501
+    ring.Parent = OpenButton
+    addCorner(ring,12)
+    addStroke(ring,C.CYAN,1,0.45)
+
+    local dot = Instance.new("Frame")
+    dot.Name = "LauncherDot"
+    dot.AnchorPoint = Vector2.new(0.5,0.5)
+    dot.Position = UDim2.new(0.5,0,1,-6)
+    dot.Size = UDim2.fromOffset(5,5)
+    dot.BackgroundColor3 = C.GOOD
+    dot.BorderSizePixel = 0
+    dot.ZIndex = 502
+    dot.Parent = OpenButton
+    addCorner(dot,99)
+end
 
 -- Drag the menu with mouse or touch.
 local dragging = false
@@ -217,16 +254,69 @@ connect(UserInputService.InputChanged, function(input)
     if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
     local delta = input.Position - dragStart
     Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    task.defer(updateMenuScale)
 end)
 
+do
+    local launcherDragging = false
+    local launcherStart = nil
+    local launcherPos = nil
+
+    connect(OpenButton.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            launcherDragging = false
+            launcherStart = input.Position
+            launcherPos = OpenButton.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End and not launcherDragging then
+                    -- Normal button activation is handled by Activated below.
+                end
+            end)
+        end
+    end)
+
+    connect(UserInputService.InputChanged, function(input)
+        if not launcherStart or not launcherPos then return end
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        local delta = input.Position - launcherStart
+        if math.abs(delta.X) > 8 or math.abs(delta.Y) > 8 then
+            launcherDragging = true
+        end
+
+        if launcherDragging then
+            OpenButton.Position = UDim2.new(
+                launcherPos.X.Scale,
+                launcherPos.X.Offset + delta.X,
+                launcherPos.Y.Scale,
+                launcherPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    connect(UserInputService.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            launcherStart = nil
+            launcherPos = nil
+            launcherDragging = false
+        end
+    end)
+end
+
 local Body = Instance.new("Frame")
-Body.Position = UDim2.fromOffset(12,64)
-Body.Size = UDim2.new(1,-24,1,-74)
+Body.Position = UDim2.fromOffset(10,56)
+Body.Size = UDim2.new(1,-20,1,-66)
 Body.BackgroundTransparency = 1
 Body.Parent = Main
 
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0,125,1,0)
+Sidebar.Size = UDim2.new(0,105,1,0)
 Sidebar.BackgroundColor3 = C.PANEL
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = Body
@@ -234,14 +324,43 @@ addCorner(Sidebar,13)
 addStroke(Sidebar,C.OUTLINE,1,0.7)
 
 local Content = Instance.new("Frame")
-Content.Position = UDim2.fromOffset(134,0)
-Content.Size = UDim2.new(1,-134,1,0)
+Content.Position = UDim2.fromOffset(114,0)
+Content.Size = UDim2.new(1,-114,1,0)
 Content.BackgroundColor3 = C.PANEL
 Content.BorderSizePixel = 0
 Content.ClipsDescendants = true
 Content.Parent = Body
 addCorner(Content,13)
 addStroke(Content,C.OUTLINE,1,0.7)
+
+updateMenuScale = function()
+    local cam = Workspace.CurrentCamera
+    if not cam then return end
+
+    local vp = cam.ViewportSize
+    local sx = (vp.X - 18) / 470
+    local sy = (vp.Y - 26) / 345
+    local scale = math.clamp(math.min(sx, sy), 0.66, 0.92)
+    Scale.Scale = scale
+
+    local half = Main.AbsoluteSize * 0.5
+    local margin = 5
+    local minX = half.X + margin
+    local maxX = math.max(minX, vp.X - half.X - margin)
+    local minY = half.Y + margin
+    local maxY = math.max(minY, vp.Y - half.Y - margin)
+
+    local center = Main.AbsolutePosition + half
+    local px = math.clamp(center.X, minX, maxX)
+    local py = math.clamp(center.Y, minY, maxY)
+
+    Main.Position = UDim2.fromOffset(px, py)
+end
+
+connect(Workspace:GetPropertyChangedSignal("CurrentCamera"), function()
+    task.defer(updateMenuScale)
+end)
+task.defer(updateMenuScale)
 
 local Pages = {}
 local TabRefs = {}
@@ -263,14 +382,14 @@ local function makeTab(i,data)
     b.BackgroundColor3=C.PANEL2
     b.BackgroundTransparency=0.9
     b.BorderSizePixel=0
-    b.Position=UDim2.fromOffset(7,6+(i-1)*39)
-    b.Size=UDim2.new(1,-14,0,35)
+    b.Position=UDim2.fromOffset(6,5+(i-1)*34)
+    b.Size=UDim2.new(1,-12,0,30)
     b.Text=""
     b.Parent=Sidebar
     addCorner(b,10)
     local a=Instance.new("Frame")
-    a.Position=UDim2.fromOffset(0,6)
-    a.Size=UDim2.fromOffset(3,23)
+    a.Position=UDim2.fromOffset(0,5)
+    a.Size=UDim2.fromOffset(3,20)
     a.BackgroundColor3=C.CYAN
     a.BorderSizePixel=0
     a.Visible=false
@@ -278,20 +397,20 @@ local function makeTab(i,data)
     addCorner(a,4)
     local ic=Instance.new("TextLabel")
     ic.BackgroundTransparency=1
-    ic.Position=UDim2.fromOffset(10,0)
-    ic.Size=UDim2.fromOffset(22,35)
+    ic.Position=UDim2.fromOffset(8,0)
+    ic.Size=UDim2.fromOffset(19,30)
     ic.Font=BOLD
     ic.Text=data.Icon
-    ic.TextSize=13
+    ic.TextSize=11
     ic.TextColor3=C.MUTED
     ic.Parent=b
     local tx=Instance.new("TextLabel")
     tx.BackgroundTransparency=1
-    tx.Position=UDim2.fromOffset(36,0)
-    tx.Size=UDim2.new(1,-42,1,0)
+    tx.Position=UDim2.fromOffset(30,0)
+    tx.Size=UDim2.new(1,-35,1,0)
     tx.Font=BOLD
     tx.Text=data.Name
-    tx.TextSize=9
+    tx.TextSize=8
     tx.TextColor3=C.MUTED
     tx.TextXAlignment=Enum.TextXAlignment.Left
     tx.Parent=b
@@ -314,11 +433,13 @@ local function makePage(name)
     p.ElasticBehavior=Enum.ElasticBehavior.Never
     p.Active=true
     p.Parent=Content
-    local pad=Instance.new("Frame")
-    pad.BackgroundTransparency=1
-    pad.Size=UDim2.fromOffset(1,40)
-    pad.Position=UDim2.fromOffset(0,1400)
-    pad.Parent=p
+    local pad = Instance.new("Frame")
+    pad.BackgroundTransparency = 1
+    pad.BorderSizePixel = 0
+    pad.Size = UDim2.fromOffset(1, 16)
+    pad.Position = UDim2.fromOffset(0, 0)
+    pad.Visible = false
+    pad.Parent = p
     Pages[name]=p
     return p
 end
@@ -347,7 +468,10 @@ end
 for name,ref in pairs(TabRefs) do connect(ref.Button.Activated,function() switchTab(name) end) end
 
 connect(Min.Activated,function() Main.Visible=false; OpenButton.Visible=true end)
-connect(OpenButton.Activated,function() Main.Visible=true; OpenButton.Visible=false end)
+connect(OpenButton.Activated,function()
+    Main.Visible=true
+    OpenButton.Visible=false
+end)
 
 local NotifyHolder=track(Instance.new("Frame"))
 NotifyHolder.AnchorPoint=Vector2.new(1,0)
@@ -710,7 +834,9 @@ function NexusVexalPack.build()
         abilityConfig = nil,
         activateShroud = nil,
         autoWalk = false,
+        occupiedPadMode = true,
         currentPad = nil,
+        currentPadValue = nil,
         fovEnabled = false,
         fovAuto = false,
         fovManual = false,
@@ -1083,7 +1209,7 @@ function NexusVexalPack.build()
                             V.originalHitboxes[hrp] = {Size = hrp.Size, CanCollide = hrp.CanCollide}
                         end
                         hrp.Size = Vector3.new(V.hitboxSize, V.hitboxSize, V.hitboxSize)
-                        hrp.CanCollide = true
+                        hrp.CanCollide = false
                         local box = hrp:FindFirstChild("NexusVexalHitbox")
                         if not box then
                             box = Instance.new("BoxHandleAdornment")
@@ -1141,6 +1267,17 @@ function NexusVexalPack.build()
         for _, child in ipairs(V.skeletonFolder:GetChildren()) do
             child:Destroy()
         end
+        -- Remove attachment leftovers created on characters by the stable beam skeleton.
+        for _, p in ipairs(Players:GetPlayers()) do
+            local char = p.Character
+            if char then
+                for _, inst in ipairs(char:GetDescendants()) do
+                    if inst:IsA("Attachment") and inst.Name:find("NexusSkel_", 1, true) then
+                        inst:Destroy()
+                    end
+                end
+            end
+        end
     end
 
     function V.updateSkeletons()
@@ -1173,24 +1310,46 @@ function NexusVexalPack.build()
                         holder.Parent = V.skeletonFolder
                     end
 
-                    local color = (p.Team == Player.Team) and V.teamColor or V.enemyColor
+                    local color = V.enemyColor
                     for i, pair in ipairs(bones) do
                         local p1 = char:FindFirstChild(pair[1])
                         local p2 = char:FindFirstChild(pair[2])
                         if p1 and p2 and p1:IsA("BasePart") and p2:IsA("BasePart") then
-                            local line = holder:FindFirstChild(tostring(i))
-                            if not line then
-                                line = Instance.new("LineHandleAdornment")
-                                line.Name = tostring(i)
-                                line.Thickness = 2
-                                line.ZIndex = 10
-                                line.AlwaysOnTop = true
-                                line.Parent = holder
+                            local beam = holder:FindFirstChild("Beam_" .. i)
+                            if not beam then
+                                beam = Instance.new("Beam")
+                                beam.Name = "Beam_" .. i
+                                beam.FaceCamera = true
+                                beam.LightEmission = 1
+                                beam.LightInfluence = 0
+                                beam.Width0 = 0.045
+                                beam.Width1 = 0.045
+                                beam.Segments = 1
+                                beam.Parent = holder
                             end
-                            line.Color3 = color
-                            line.Adornee = p1
-                            line.CFrame = CFrame.new(Vector3.zero, p1.CFrame:PointToObjectSpace(p2.Position))
-                            line.Length = (p1.Position - p2.Position).Magnitude
+
+                            local aName = "NexusSkel_A_" .. i
+                            local bName = "NexusSkel_B_" .. i
+                            local a0 = p1:FindFirstChild(aName)
+                            local a1 = p2:FindFirstChild(bName)
+                            if not a0 then
+                                a0 = Instance.new("Attachment")
+                                a0.Name = aName
+                                a0.Parent = p1
+                            end
+                            if not a1 then
+                                a1 = Instance.new("Attachment")
+                                a1.Name = bName
+                                a1.Parent = p2
+                            end
+
+                            beam.Attachment0 = a0
+                            beam.Attachment1 = a1
+                            beam.Color = ColorSequence.new(color)
+                            beam.Enabled = true
+                        elseif holder then
+                            local beam = holder:FindFirstChild("Beam_" .. i)
+                            if beam then beam.Enabled = false end
                         end
                     end
                 end
@@ -1198,15 +1357,24 @@ function NexusVexalPack.build()
         end
 
         for _, child in ipairs(V.skeletonFolder:GetChildren()) do
-            if not alive[child.Name] then
-                child:Destroy()
-            end
+            if not alive[child.Name] then child:Destroy() end
         end
     end
 
     function V.clearTracers()
-        if not V.tracerFolder then return end
-        for _, child in ipairs(V.tracerFolder:GetChildren()) do child:Destroy() end
+        if V.tracerFolder then
+            for _, child in ipairs(V.tracerFolder:GetChildren()) do child:Destroy() end
+        end
+        for _, p in ipairs(Players:GetPlayers()) do
+            local char = p.Character
+            if char then
+                for _, inst in ipairs(char:GetDescendants()) do
+                    if inst:IsA("Attachment") and inst.Name:find("NexusTracer_", 1, true) then
+                        inst:Destroy()
+                    end
+                end
+            end
+        end
     end
 
     function V.updateTracers()
@@ -1218,28 +1386,47 @@ function NexusVexalPack.build()
         local myChar = Player.Character
         local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
         if not myRoot then return end
+
+        local originAttachment = myRoot:FindFirstChild("NexusTracer_Origin")
+        if not originAttachment then
+            originAttachment = Instance.new("Attachment")
+            originAttachment.Name = "NexusTracer_Origin"
+            originAttachment.Parent = myRoot
+        end
+
         local active = {}
         for _, p in ipairs(V.matchEnemies) do
             if V.isCombatEnemy(p) and p.Character then
                 local root = p.Character:FindFirstChild("HumanoidRootPart")
                 if root then
                     active[p.Name] = true
+                    local targetAttachment = root:FindFirstChild("NexusTracer_Target")
+                    if not targetAttachment then
+                        targetAttachment = Instance.new("Attachment")
+                        targetAttachment.Name = "NexusTracer_Target"
+                        targetAttachment.Parent = root
+                    end
+
                     local line = V.tracerFolder:FindFirstChild(p.Name)
                     if not line then
-                        line = Instance.new("LineHandleAdornment")
+                        line = Instance.new("Beam")
                         line.Name = p.Name
-                        line.Thickness = 1.5
-                        line.ZIndex = 10
-                        line.AlwaysOnTop = true
+                        line.FaceCamera = true
+                        line.LightEmission = 1
+                        line.LightInfluence = 0
+                        line.Width0 = 0.028
+                        line.Width1 = 0.028
+                        line.Segments = 1
                         line.Parent = V.tracerFolder
                     end
-                    line.Color3 = V.enemyColor
-                    line.Adornee = Workspace.Terrain
-                    line.CFrame = CFrame.lookAt(myRoot.Position, root.Position)
-                    line.Length = (myRoot.Position - root.Position).Magnitude
+                    line.Attachment0 = originAttachment
+                    line.Attachment1 = targetAttachment
+                    line.Color = ColorSequence.new(V.enemyColor)
+                    line.Enabled = true
                 end
             end
         end
+
         for _, child in ipairs(V.tracerFolder:GetChildren()) do
             if not active[child.Name] then child:Destroy() end
         end
@@ -1346,7 +1533,10 @@ function NexusVexalPack.build()
         local dist = (root.Position - model.PrimaryPart.Position).Magnitude
         if dist <= 6 then
             V.noclip = false
+            if V.currentPadValue then V.currentPadValue.Text = "ARRIVED" end
+            return
         end
+        if V.currentPadValue then V.currentPadValue.Text = tostring(model.Name) end
         hum:MoveTo(model.PrimaryPart.Position)
         if not V.walkJumpAt or os.clock() - V.walkJumpAt >= 2 then
             V.walkJumpAt = os.clock()
@@ -1357,34 +1547,128 @@ function NexusVexalPack.build()
         end
     end
 
-    function V.findPad()
+    function V.padHasFreeSlot(model)
+        if not model or not model.Parent or not model:IsA("Model") then
+            return false
+        end
+
+        local name = model.Parent and model.Parent.Name
+        local groups = V.getPadGroups()
+        local maxCount = groups[name]
+
+        if not maxCount then
+            return false
+        end
+
+        local count = tonumber(model:GetAttribute("CharacterCount")) or 0
+        return count < maxCount
+    end
+
+    function V.findAnyAvailablePad()
         local lobby = Workspace:FindFirstChild("Lobby")
         local groups = V.getPadGroups()
         if not lobby then return nil end
+
+        local myRoot = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+        local best = nil
+        local bestScore = -math.huge
+
+        local rings = lobby:FindFirstChild("DuelRingsGroup")
+        if not rings then return nil end
+
         for groupName, maxCount in pairs(groups) do
-            local ringFolder = lobby:FindFirstChild("DuelRingsGroup") and lobby.DuelRingsGroup:FindFirstChild(groupName)
-            if ringFolder then
-                local total = 0
-                local pads = {}
-                for _, model in ipairs(ringFolder:GetChildren()) do
-                    if model:IsA("Model") and model.Name == "DuelPad" then
-                        local count = model:GetAttribute("CharacterCount") or 0
-                        total += count
-                        pads[#pads + 1] = {model = model, count = count}
-                    end
-                end
-                if total == (maxCount * 2) - 1 then
-                    for _, pad in ipairs(pads) do
-                        if pad.count < maxCount then
-                            return pad.model
+            local folder = rings:FindFirstChild(groupName)
+            if folder then
+                for _, model in ipairs(folder:GetChildren()) do
+                    if model:IsA("Model") and model.Name == "DuelPad" and V.padHasFreeSlot(model) then
+                        local count = tonumber(model:GetAttribute("CharacterCount")) or 0
+                        local distance = 99999
+                        if myRoot and model.PrimaryPart then
+                            distance = (myRoot.Position - model.PrimaryPart.Position).Magnitude
+                        end
+
+                        -- Prefer occupied pads, then higher occupancy, then shorter distance.
+                        local score = (count > 0 and 100000 or 0) + (count * 1000) - (distance * 0.1)
+                        if score > bestScore then
+                            bestScore = score
+                            best = model
                         end
                     end
                 end
             end
         end
-        return nil
+
+        return best
     end
 
+    function V.findOccupiedPadWithFreeSlot()
+        local lobby = Workspace:FindFirstChild("Lobby")
+        local groups = V.getPadGroups()
+        if not lobby then return nil end
+
+        local best = nil
+        local bestScore = -math.huge
+        local myRoot = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+
+        for groupName, maxCount in pairs(groups) do
+            local groupFolder = lobby:FindFirstChild("DuelRingsGroup")
+                and lobby.DuelRingsGroup:FindFirstChild(groupName)
+            if groupFolder then
+                local pads = {}
+                local total = 0
+                local maxPlayers = maxCount * 2
+
+                for _, model in ipairs(groupFolder:GetChildren()) do
+                    if model:IsA("Model") and model.Name == "DuelPad" then
+                        local count = tonumber(model:GetAttribute("CharacterCount")) or 0
+                        total += math.max(0, count)
+                        pads[#pads + 1] = {model = model, count = math.max(0, count)}
+                    end
+                end
+
+                -- We only target an already occupied duel location that still has room.
+                if total > 0 and total < maxPlayers then
+                    for _, pad in ipairs(pads) do
+                        if pad.count < maxCount then
+                            local distance = 99999
+                            if myRoot and pad.model.PrimaryPart then
+                                distance = (myRoot.Position - pad.model.PrimaryPart.Position).Magnitude
+                            end
+
+                            local score = 0
+                            if pad.count > 0 then score += 1000 end -- occupied pad itself
+                            score += total * 100
+                            score += pad.count * 50
+                            score -= distance * 0.01
+
+                            if score > bestScore then
+                                bestScore = score
+                                best = pad.model
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        return best
+    end
+
+    function V.findPad()
+        -- Keep the original preference: occupied location with a free slot first.
+        if V.occupiedPadMode then
+            local occupied = V.findOccupiedPadWithFreeSlot()
+            if occupied then return occupied end
+        end
+
+        -- Important for continuous Auto Walk: after a duel ends, the previous
+        -- "last slot" condition may no longer be true. Pick ANY pad with a free
+        -- slot instead of leaving Auto Walk idle until a special condition appears.
+        local anyAvailable = V.findAnyAvailablePad()
+        if anyAvailable then return anyAvailable end
+
+        return nil
+    end
     function V.restoreSpeed()
         local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = V.originalSpeed end
@@ -1503,26 +1787,39 @@ function NexusVexalPack.build()
     makeSlider(abilityValues, 646, "Shroud Projectile Speed", 2.5, 100, cfgNumber("ShroudProjectileSpeed", 20), function(v) setCfg("ShroudProjectileSpeed", v) end, 2.5)
     makeSlider(abilityValues, 694, "Shroud Projectile Range", 5, 1000, cfgNumber("ShroudProjectileRange", 100), function(v) setCfg("ShroudProjectileRange", v) end, 5)
 
-    makeTitle(TeleportPage, "TELEPORT", "Lobby duel pad helper")
-    local teleSection = makeSection(TeleportPage, 54, 170, "AUTO WALK")
-    makeToggle(teleSection, 30, "Enable Auto Walk to Duel Pads", false, function(v) V.autoWalk = v end)
-    makeButton(teleSection, 68, "FIND AVAILABLE DUEL PAD", function()
+    makeTitle(TeleportPage, "TELEPORT", "Lobby duel pad helper • occupied slots first")
+    local teleSection = makeSection(TeleportPage, 54, 202, "AUTO WALK")
+    makeToggle(teleSection, 27, "Enable Auto Walk to Duel Pads", false, function(v) V.autoWalk = v end)
+    makeToggle(teleSection, 59, "Prefer Occupied Locations With Free Slot", true, function(v) V.occupiedPadMode = v end)
+    makeButton(teleSection, 94, "FIND OCCUPIED + FREE SLOT", function()
+        V.currentPad = V.findOccupiedPadWithFreeSlot()
+        if V.currentPad then
+            V.autoWalk = true
+            V.walkTo(V.currentPad)
+            setNotify("Walking to occupied location with free slot")
+        else
+            setNotify("No occupied location with a free slot found")
+        end
+    end)
+    makeButton(teleSection, 128, "FIND BEST AVAILABLE PAD", function()
         V.currentPad = V.findPad()
         if V.currentPad then
+            V.autoWalk = true
             V.walkTo(V.currentPad)
             setNotify("Walking to " .. tostring(V.currentPad.Name))
         else
             setNotify("No available duel pad found")
         end
     end)
-    makeButton(teleSection, 106, "STOP AUTO WALK", function()
+    makeButton(teleSection, 162, "STOP AUTO WALK", function()
         V.autoWalk = false
         V.currentPad = nil
         V.noclip = false
+        if V.currentPadValue then V.currentPadValue.Text = "None" end
     end)
-    makeValue(teleSection, 144, "Current Pad", "None")
+    V.currentPadValue = makeValue(teleSection, 190, "Current Pad", "None")
 
-    V.padSection = makeSection(TeleportPage, 236, 560, "DUEL PAD BUTTONS")
+    V.padSection = makeSection(TeleportPage, 266, 560, "DUEL PAD BUTTONS")
     makeButton(V.padSection, 30, "REFRESH PAD BUTTONS", function()
         V.rebuildPadButtons()
     end)
@@ -1542,7 +1839,9 @@ function NexusVexalPack.build()
                 local index = 1
                 for _, model in ipairs(folder:GetChildren()) do
                     if model:IsA("Model") and model.Name == "DuelPad" then
-                        local title = "Walk to " .. groupName .. " " .. tostring(index)
+                        local count = tonumber(model:GetAttribute("CharacterCount")) or 0
+                        local slotText = (count > 0 and count < (groups[groupName] or 1)) and " • FREE SLOT" or ""
+                        local title = "Walk to " .. groupName .. " " .. tostring(index) .. " [" .. tostring(count) .. "]" .. slotText
                         local btn = makeButton(V.padSection, top, title, function()
                             V.currentPad = model
                             V.autoWalk = false
@@ -1586,13 +1885,13 @@ function NexusVexalPack.build()
     V.skeletonFolder.Name = "NexusSkeletons"
     V.skeletonFolder.Parent = CoreGui
     makeToggle(extraEsp, 30, "ESP Charms", false, function(v) V.charms = v if not v then for _, child in ipairs(V.charmsFolder:GetChildren()) do child:Destroy() end end end)
-    makeColorPicker(extraEsp, 214, "Team Color", V.teamColor, {C.GOOD, C.CYAN, C.TEXT, C.WARN, C.VIOLET}, function(c) V.teamColor = c end)
-    makeColorPicker(extraEsp, 246, "Enemy Color", V.enemyColor, {C.BAD, C.MAGENTA, C.VIOLET, C.CYAN, C.WARN}, function(c) V.enemyColor = c end)
-    makeToggle(extraEsp, 94, "ESP Skeleton", false, function(v) V.skeletons = v if not v then V.cleanupSkeletons() end end)
-    makeToggle(extraEsp, 126, "ESP Tracers", false, function(v) V.tracers = v if not v then V.clearTracers() end end)
-    makeToggle(extraEsp, 158, "Hitbox Expander", false, function(v) V.hitboxExpander = v if not v then V.cleanupHitboxes() end end)
-    makeSlider(extraEsp, 196, "Hitbox Size", 5, 100, 13, function(v) V.hitboxSize = v end)
-    makeButton(extraEsp, 278, "CYCLE ESP COLORS", function()
+    makeToggle(extraEsp, 62, "ESP Skeleton", false, function(v) V.skeletons = v if not v then V.cleanupSkeletons() end end)
+    makeToggle(extraEsp, 94, "ESP Tracers", false, function(v) V.tracers = v if not v then V.clearTracers() end end)
+    makeToggle(extraEsp, 126, "Hitbox Expander", false, function(v) V.hitboxExpander = v if not v then V.cleanupHitboxes() end end)
+    makeSlider(extraEsp, 164, "Hitbox Size", 5, 100, 13, function(v) V.hitboxSize = v end)
+    makeColorPicker(extraEsp, 220, "Team Color", V.teamColor, {C.GOOD, C.CYAN, C.TEXT, C.WARN, C.VIOLET}, function(c) V.teamColor = c end)
+    makeColorPicker(extraEsp, 254, "Enemy Color", V.enemyColor, {C.BAD, C.MAGENTA, C.VIOLET, C.CYAN, C.WARN}, function(c) V.enemyColor = c end)
+    makeButton(extraEsp, 292, "CYCLE ESP COLORS", function()
         local palette = {C.CYAN, C.VIOLET, C.MAGENTA, C.GOOD, C.WARN, C.TEXT, C.BAD}
         V.enemyColor = cycleColor(V.enemyColor, palette)
         V.teamColor = cycleColor(V.teamColor, {C.GOOD, C.CYAN, C.TEXT, C.WARN})
@@ -1763,15 +2062,42 @@ function NexusVexalPack.build()
     end)
 
     spawn(function()
+        local wasInMatch = false
+
         while V.running do
-            if V.autoWalk and not V.match then
-                if not V.currentPad then V.currentPad = V.findPad() end
-                if V.currentPad then V.walkTo(V.currentPad) end
-                if V.currentPad and V.currentPad.Parent == nil then V.currentPad = nil end
+            local inMatch = V.match
+
+            if inMatch then
+                -- Never turn Auto Walk off just because a duel is active.
+                -- Only release the current pad; when Match becomes nil again,
+                -- the search below will immediately choose the next available pad.
+                wasInMatch = true
+                V.currentPad = nil
+            elseif V.autoWalk then
+                if wasInMatch then
+                    -- Small grace period for the lobby/duel-pad CharacterCount
+                    -- attributes to update after the round transition.
+                    wasInMatch = false
+                    task.wait(0.35)
+                end
+
+                local invalid = (not V.currentPad)
+                    or (V.currentPad.Parent == nil)
+                    or (not V.padHasFreeSlot(V.currentPad))
+
+                if invalid then
+                    V.currentPad = V.findPad()
+                end
+
+                if V.currentPad then
+                    V.walkTo(V.currentPad)
+                end
             else
                 V.currentPad = nil
+                wasInMatch = false
             end
-            task.wait(0.2)
+
+            task.wait(0.15)
         end
     end)
 
@@ -1911,6 +2237,13 @@ function NexusVexalPack.build()
 end
 
 xpcall(NexusVexalPack.build, function(err) warn("[Nexus Vexal] " .. tostring(err)); return err end)
+
+local function nexusRefreshMenuScale()
+    task.defer(updateMenuScale)
+end
+if Workspace.CurrentCamera then
+    connect(Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"), nexusRefreshMenuScale)
+end
 
 --============================================================
 -- START
