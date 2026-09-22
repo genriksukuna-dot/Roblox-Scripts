@@ -1,13 +1,3 @@
---[[
-    NEXUS KNIFE DUELS
-    Nexus UI + ESP + Sticky Aimbot + Config
-
-    Designed as a single LocalScript / executor script.
-    The script uses generic object discovery so it can survive small hierarchy/name changes.
-    No external UI library required.
-
-]]
-
 repeat task.wait() until game:IsLoaded()
 
 local Players = game:GetService("Players")
