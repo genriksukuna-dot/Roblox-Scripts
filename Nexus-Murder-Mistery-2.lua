@@ -3269,6 +3269,8 @@ end)
 --==============================================================
 
 local GunDropCache = {}
+local GunDropSpawnTime = {}
+local GUN_PICKUP_DELAY = 5
 local SheriffDeathObserved = false
 local TryAutoTeleportToGun
 
@@ -3298,6 +3300,9 @@ end
 local function CacheGunDrop(object)
     if IsGunDropObject(object) then
         GunDropCache[object] = true
+        if not GunDropSpawnTime[object] then
+            GunDropSpawnTime[object] = os.clock()
+        end
     end
 end
 
@@ -3308,25 +3313,40 @@ end
 Workspace.DescendantAdded:Connect(function(object)
     if IsGunDropObject(object) then
         GunDropCache[object] = true
+        GunDropSpawnTime[object] = os.clock()
+
+        -- The drop must exist for a full 5 seconds before we move to it.
         if Config.Aim.AutoTeleportGun and AimRole() == "Innocent" then
-            task.delay(0.05, TryAutoTeleportToGun)
+            task.delay(GUN_PICKUP_DELAY, function()
+                if not object or not object.Parent or not object:IsDescendantOf(Workspace) then
+                    return
+                end
+                TryAutoTeleportToGun(object)
+            end)
         end
     end
 end)
 
 Workspace.DescendantRemoving:Connect(function(object)
     GunDropCache[object] = nil
+    GunDropSpawnTime[object] = nil
 end)
 
 local function FindGunDrop()
+    local now = os.clock()
+
     for object in pairs(GunDropCache) do
         if object and object.Parent and object:IsDescendantOf(Workspace) then
-            local part = GetObjectPart(object)
-            if part then
-                return part
+            local spawnedAt = GunDropSpawnTime[object] or now
+            if now - spawnedAt >= GUN_PICKUP_DELAY then
+                local part = GetObjectPart(object)
+                if part then
+                    return part, object, spawnedAt
+                end
             end
         else
             GunDropCache[object] = nil
+            GunDropSpawnTime[object] = nil
         end
     end
 
@@ -3336,12 +3356,15 @@ local function FindGunDrop()
             local part = GetObjectPart(object)
             if part then
                 GunDropCache[object] = true
-                return part
+                GunDropSpawnTime[object] = GunDropSpawnTime[object] or now
+                if now - GunDropSpawnTime[object] >= GUN_PICKUP_DELAY then
+                    return part, object, GunDropSpawnTime[object]
+                end
             end
         end
     end
 
-    return nil
+    return nil, nil, nil
 end
 
 local function PickupGunDrop(drop)
@@ -3396,7 +3419,7 @@ local function PickupGunDrop(drop)
     return false
 end
 
-TryAutoTeleportToGun = function()
+TryAutoTeleportToGun = function(triggerObject)
     if AutoGunTeleportBusy or not Config.Aim.AutoTeleportGun then
         return
     end
@@ -3408,6 +3431,15 @@ TryAutoTeleportToGun = function()
     AutoGunTeleportBusy = true
 
     task.spawn(function()
+        -- Never touch the drop before it has existed for 5 seconds.
+        if triggerObject then
+            local spawnedAt = GunDropSpawnTime[triggerObject] or os.clock()
+            local remaining = GUN_PICKUP_DELAY - (os.clock() - spawnedAt)
+            if remaining > 0 then
+                task.wait(remaining)
+            end
+        end
+
         -- Wait for the actual drop instead of depending on Sheriff ESP/role text.
         for _ = 1, 30 do
             if not Config.Aim.AutoTeleportGun or AimRole() ~= "Innocent" then
