@@ -25,6 +25,123 @@ local ContentProvider = game:GetService("ContentProvider")
 local LocalPlayer = Players.LocalPlayer
 
 --=======================================================
+-- NEXUS CONTROL API / TELEMETRY
+--=======================================================
+
+local TELEMETRY = {
+    Enabled = true,
+    BaseUrl = "http://91.219.60.83:3000",
+    ClientKey = "7b3e907e20e18c634042d86b443b15b8a1f9ae2f5ff7f11b",
+    Version = "1.0.0",
+    HeartbeatInterval = 30,
+}
+
+local function getHttpRequest()
+    local candidates = {
+        type(request) == "function" and request or nil,
+        type(http_request) == "function" and http_request or nil,
+        syn and type(syn.request) == "function" and syn.request or nil,
+        http and type(http.request) == "function" and http.request or nil,
+        fluxus and type(fluxus.request) == "function" and fluxus.request or nil,
+    }
+
+    for _, fn in ipairs(candidates) do
+        if fn then
+            return fn
+        end
+    end
+
+    return nil
+end
+
+local function telemetryPlatform()
+    local ok, touch = pcall(function()
+        return UserInputService.TouchEnabled
+    end)
+    local okKeyboard, keyboard = pcall(function()
+        return UserInputService.KeyboardEnabled
+    end)
+
+    if ok and okKeyboard then
+        if touch and not keyboard then
+            return "Mobile"
+        elseif touch and keyboard then
+            return "Hybrid"
+        end
+    end
+
+    return "PC"
+end
+
+local function telemetryClientId()
+    return "rbx:" .. tostring(LocalPlayer.UserId)
+end
+
+local function telemetryRequest(endpoint, body)
+    if not TELEMETRY.Enabled then
+        return false, "disabled"
+    end
+
+    local httpRequest = getHttpRequest()
+    if not httpRequest then
+        return false, "request function unavailable"
+    end
+
+    local ok, response = pcall(function()
+        return httpRequest({
+            Url = TELEMETRY.BaseUrl .. endpoint,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json",
+                ["x-nexus-client-key"] = TELEMETRY.ClientKey,
+            },
+            Body = game:GetService("HttpService"):JSONEncode(body),
+        })
+    end)
+
+    if not ok then
+        return false, response
+    end
+
+    return true, response
+end
+
+local function sendLaunch()
+    task.spawn(function()
+        telemetryRequest("/api/launch", {
+            clientId = telemetryClientId(),
+            version = TELEMETRY.Version,
+            platform = telemetryPlatform(),
+        })
+    end)
+end
+
+local function sendHeartbeat()
+    task.spawn(function()
+        telemetryRequest("/api/heartbeat", {
+            clientId = telemetryClientId(),
+            version = TELEMETRY.Version,
+            platform = telemetryPlatform(),
+            username = tostring(LocalPlayer.Name),
+        })
+    end)
+end
+
+task.spawn(function()
+    if not TELEMETRY.Enabled then
+        return
+    end
+
+    sendLaunch()
+
+    task.wait(2)
+    while true do
+        sendHeartbeat()
+        task.wait(TELEMETRY.HeartbeatInterval)
+    end
+end)
+
+--=======================================================
 -- CONFIG
 --=======================================================
 
