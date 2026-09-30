@@ -482,6 +482,65 @@ local CONFIG = {
                 } },
             },
         },
+
+        --===================================================
+        -- SELL LEMON
+        --===================================================
+
+        {
+            Id = "SellLemon",
+            Title = "SELL LEMON",
+            Category = "SIMULATOR",
+            Description = "NEXUS Sell Lemon profile with automation, progression, bonuses, minigames, anti-AFK and live statistics.",
+            AssetId = "102849395872207",
+            ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-Sell-Lemon.lua",
+            Accent = Color3.fromRGB(150, 105, 220),
+            Accent2 = Color3.fromRGB(111, 75, 174),
+            Features = {
+                { Category = "FARM", Items = {
+                    "Auto Buy Upgrades",
+                    "Auto Click Income",
+                    "Auto Upgrade Stands",
+                    "Auto Collect Fruit",
+                    "Auto Collect Drops",
+                    "Auto Cash Vine",
+                    "Auto Phone Offer",
+                } },
+                { Category = "PROGRESSION", Items = {
+                    "Auto Rebirth",
+                    "Auto Ascend",
+                    "Auto Evolve",
+                    "Auto Power Upgrade",
+                } },
+                { Category = "BONUS", Items = {
+                    "Auto Double Offline Cash",
+                    "Auto Use Time Cash",
+                    "Auto Use Earner Boost",
+                    "Auto Minigame Race",
+                    "Auto Minigame Trade",
+                } },
+                { Category = "SETTINGS", Items = {
+                    "Fruit Sweep Delay",
+                    "Phone Offer Response",
+                    "Anti-AFK",
+                    "Boost FPS",
+                } },
+                { Category = "STATUS", Items = {
+                    "Live Counters",
+                    "Live Cash",
+                    "Upgrade Statistics",
+                    "Fruit / Drop Statistics",
+                    "Rebirth / Ascend / Evolve Statistics",
+                    "Minigame Statistics",
+                } },
+                { Category = "COMPATIBILITY", Items = {
+                    "PC Support",
+                    "Mobile Support",
+                    "Standalone UI",
+                    "RightControl Menu Toggle",
+                } },
+            },
+        },
     },
 }
 
