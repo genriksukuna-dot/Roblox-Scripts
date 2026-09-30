@@ -1,7 +1,7 @@
 --[[
     NEXUS • SELL LEMON
     Cosmic Purple visual theme; no neon effects.
-    v3 — centered window, dashboard removed, fixed top status opener.
+    v5 — timed rebirth control, drop collector removed.
     Standalone UI — NO MacLib dependency.
 
     Ported functionality from the supplied Sell Lemon / NEXUS • SELL LEMON script:
@@ -10,7 +10,6 @@
         • Auto Click Income
         • Auto Upgrade Stands
         • Auto Collect Fruit
-        • Auto Collect Drops
         • Auto Cash Vine
         • Auto Phone Offer
       PROGRESSION
@@ -64,12 +63,12 @@ local CONFIG = {
     DragKey = Enum.KeyCode.RightControl,
     FruitSweepDelay = 5,
     PhoneOfferResponse = "Accept",
+    RebirthInterval = 3600, -- 1 minute .. 4 hours; default 1 hour
 }
 
 local ENABLED = {
     AutoBuyUpgrades = false,
     AutoCollectFruit = false,
-    AutoCollectDrops = false,
     AutoClick = false,
     AutoPhoneOffer = false,
     AutoUpgradeStands = false,
@@ -90,7 +89,6 @@ local ENABLED = {
 local STATS = {
     upgradesBought = 0,
     fruitCollected = 0,
-    dropsCollected = 0,
     clicks = 0,
     phoneOffers = 0,
     standsUpgraded = 0,
@@ -479,112 +477,179 @@ local function autoUpgradeStandsStep()
     end
 end
 
-local function autoCollectFruitStep()
-    local detectors = {}
+local function getCharacterRoot()
+    local c = LocalPlayer.Character
+    if not c then return nil end
 
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj.Name == "LemonTree" then
-            for _, fruit in ipairs(obj:GetDescendants()) do
-                if fruit.Name == "Fruit" then
-                    local clickPart = fruit:FindFirstChild("ClickPart")
-                    if clickPart then
-                        local cd = clickPart:FindFirstChildOfClass("ClickDetector")
-                        if cd then
-                            table.insert(detectors, { cd = cd, part = clickPart })
-                        end
+    local r = c:FindFirstChild("HumanoidRootPart")
+    if r and r:IsA("BasePart") then
+        root = r
+        return r
+    end
+
+    return root
+end
+
+local function moveRootTo(position)
+    local r = getCharacterRoot()
+    if not r or not position then return false end
+
+    local target = CFrame.new(position)
+    local ok = pcall(function()
+        r.CFrame = target
+    end)
+
+    -- Pivot the whole character as well. This helps when the character root is
+    -- network-owned differently by the game.
+    local c = LocalPlayer.Character
+    if c then
+        pcall(function()
+            c:PivotTo(target)
+        end)
+    end
+
+    return ok
+end
+
+local function fireClickDetectorSafe(cd)
+    if not cd or not cd.Parent then return false end
+    local fn = fireclickdetector
+    if type(fn) ~= "function" then return false end
+
+    -- Different executors expose the optional distance/argument differently.
+    for _, args in ipairs({ {cd, 1}, {cd, 20}, {cd} }) do
+        local ok = pcall(fn, table.unpack(args))
+        if ok then return true end
+    end
+
+    return false
+end
+
+local function activatePromptSafe(prompt)
+    if not prompt or not prompt.Parent then return false end
+    local fn = fireproximityprompt
+    if type(fn) ~= "function" then return false end
+
+    for _, args in ipairs({ {prompt, 1}, {prompt, 0}, {prompt} }) do
+        local ok = pcall(fn, table.unpack(args))
+        if ok then return true end
+    end
+
+    return false
+end
+
+local function touchPartSafe(part)
+    if not part or not part.Parent then return false end
+    local fn = firetouchinterest
+    local r = getCharacterRoot()
+    if type(fn) ~= "function" or not r then return false end
+
+    local ok = pcall(fn, r, part, 0)
+    if not ok then return false end
+    task.wait(0.05)
+    pcall(fn, r, part, 1)
+    return true
+end
+
+local function findDescendantOfClass(parent, className)
+    if not parent then return nil end
+    for _, obj in ipairs(parent:GetDescendants()) do
+        if obj:IsA(className) then
+            return obj
+        end
+    end
+    return nil
+end
+
+local function findFirstBasePart(parent)
+    if not parent then return nil end
+    if parent:IsA("BasePart") then return parent end
+    for _, obj in ipairs(parent:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            return obj
+        end
+    end
+    return nil
+end
+
+local function autoCollectFruitStep()
+    local r = getCharacterRoot()
+    if not r then return end
+
+    local targets = {}
+    local seen = {}
+
+    -- Prefer the exact hierarchy from the supplied working script, then fall
+    -- back to a broader LemonTree/Fruit detector search for map variations.
+    for _, tree in ipairs(Workspace:GetDescendants()) do
+        if tree.Name ~= "LemonTree" then continue end
+
+        for _, fruit in ipairs(tree:GetDescendants()) do
+            if fruit.Name ~= "Fruit" then continue end
+
+            local clickPart = fruit:FindFirstChild("ClickPart", true)
+            local detector = clickPart and clickPart:FindFirstChildOfClass("ClickDetector")
+
+            if not detector then
+                detector = findDescendantOfClass(fruit, "ClickDetector")
+            end
+
+            if detector and not seen[detector] then
+                local targetPart = clickPart
+                if not targetPart or not targetPart:IsA("BasePart") then
+                    targetPart = detector.Parent
+                    while targetPart and targetPart ~= fruit and not targetPart:IsA("BasePart") do
+                        targetPart = targetPart.Parent
                     end
                 end
+                if not targetPart or not targetPart:IsA("BasePart") then
+                    targetPart = findFirstBasePart(fruit)
+                end
+
+                if targetPart then
+                    seen[detector] = true
+                    table.insert(targets, {
+                        detector = detector,
+                        part = targetPart,
+                    })
+                end
             end
         end
     end
 
-    if #detectors == 0 or not root then return end
+    if #targets == 0 then return end
 
-    local saved = root.CFrame
-    for _, entry in ipairs(detectors) do
+    local saved = r.CFrame
+    for _, entry in ipairs(targets) do
         if not ENABLED.AutoCollectFruit then break end
+        if not entry.detector or not entry.detector.Parent then continue end
         if not entry.part or not entry.part.Parent then continue end
 
-        pcall(function()
-            root.CFrame = CFrame.new(entry.part.Position + Vector3.new(0, 3, 0))
-        end)
-        task.wait(0.1)
-
-        local fireFn = fireclickdetector
-        if type(fireFn) == "function" then
-            local ok = pcall(fireFn, entry.cd)
-            if ok then
-                STATS.fruitCollected += 1
-            end
-        end
+        moveRootTo(entry.part.Position + Vector3.new(0, 3, 0))
         task.wait(0.12)
-    end
 
-    pcall(function()
-        if root then root.CFrame = saved end
-    end)
-end
-
-local dropRedeemRF = nil
-local function setupDropRemote()
-    local core = ReplicatedStorage:FindFirstChild("Core")
-    if not core then return end
-
-    local signal = core:FindFirstChild("RemoteSignal")
-    local request = core:FindFirstChild("RemoteRequest")
-    if not signal or not request then return end
-
-    local newDrop = signal:FindFirstChild("CashDropService.New")
-    local redeemDrop = request:FindFirstChild("CashDropService.Redeem")
-    if not newDrop or not redeemDrop then return end
-
-    dropRedeemRF = redeemDrop
-
-    if newDrop:IsA("RemoteEvent") then
-        connect(newDrop.OnClientEvent, function(id)
-            if not ENABLED.AutoCollectDrops or id == nil or not dropRedeemRF then return end
-            task.spawn(function()
-                local ok = pcall(function()
-                    return dropRedeemRF:InvokeServer(id)
-                end)
-                if ok then
-                    STATS.dropsCollected += 1
-                end
-            end)
-        end)
-    end
-end
-
-setupDropRemote()
-
-local lastDropSweep = 0
-local function autoCashDropsStep()
-    if os.clock() - lastDropSweep < 4 then return end
-    lastDropSweep = os.clock()
-
-    local dropsFolder = Workspace:FindFirstChild("CashDrops")
-    if not dropsFolder or not root then return end
-
-    local parts = {}
-    for _, obj in ipairs(dropsFolder:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            table.insert(parts, obj)
+        -- Try the normal click-detector path more than once, because some
+        -- versions of the game recreate the detector after collection.
+        local fired = false
+        for _ = 1, 2 do
+            if not entry.detector.Parent then break end
+            if fireClickDetectorSafe(entry.detector) then
+                fired = true
+                break
+            end
+            task.wait(0.06)
         end
-    end
-    if #parts == 0 then return end
 
-    local saved = root.CFrame
-    for _, part in ipairs(parts) do
-        if not ENABLED.AutoCollectDrops then break end
-        if not part or not part.Parent then continue end
-        pcall(function()
-            root.CFrame = CFrame.new(part.Position + Vector3.new(0, 1, 0))
-        end)
-        STATS.dropsCollected += 1
-        task.wait(0.1)
+        if fired then
+            STATS.fruitCollected += 1
+        end
+        task.wait(0.14)
     end
+
     pcall(function()
-        if root then root.CFrame = saved end
+        if r and r.Parent then
+            r.CFrame = saved
+        end
     end)
 end
 
@@ -667,8 +732,21 @@ local function setupPhoneOffer()
 end
 
 local rebirthCooldown = false
+local lastRebirthTime = 0
+
 local function autoRebirthStep()
     if rebirthCooldown then return end
+
+    -- Do not fire immediately on toggle; wait for the selected interval.
+    if lastRebirthTime == 0 then
+        lastRebirthTime = os.clock()
+        return
+    end
+
+    if os.clock() - lastRebirthTime < CONFIG.RebirthInterval then
+        return
+    end
+
     local r = rem("Rebirth")
     if not r then return end
 
@@ -679,7 +757,9 @@ local function autoRebirthStep()
         end)
 
         if ok then
+            lastRebirthTime = os.clock()
             STATS.rebirths += 1
+
             task.wait(5)
             myTycoon = nil
             table.clear(buyLock)
@@ -1442,6 +1522,28 @@ local function createValueRow(parent, title, valueGetter)
     }
 end
 
+local function formatDuration(seconds)
+    seconds = math.max(0, math.floor(seconds + 0.5))
+
+    if seconds < 60 then
+        return tostring(seconds) .. "s"
+    end
+
+    local minutes = math.floor(seconds / 60)
+    if minutes < 60 then
+        return tostring(minutes) .. "m"
+    end
+
+    local hours = math.floor(minutes / 60)
+    local mins = minutes % 60
+
+    if mins == 0 then
+        return tostring(hours) .. "h"
+    end
+
+    return string.format("%dh %02dm", hours, mins)
+end
+
 --==============================================================
 -- PAGES
 --==============================================================
@@ -1464,7 +1566,6 @@ do
     createToggle(c1, "Auto Collect Fruit", "Sweeps LemonTree fruit and clicks detectors.", "AutoCollectFruit")
 
     local c2 = createCard(right, "COLLECTORS")
-    createToggle(c2, "Auto Collect Drops", "Redeems cash drops and sweeps visible drops.", "AutoCollectDrops")
     createToggle(c2, "Auto Cash Vine", "Uses the Sewer CashVine remote.", "AutoCashVine")
     createToggle(c2, "Auto Phone Offer", "Automatically responds to phone offers.", "AutoPhoneOffer")
 end
@@ -1482,10 +1583,102 @@ do
     local c2 = createCard(right, "POWER")
     createToggle(c2, "Auto Power Upgrade", "Cycles through configured power upgrade names.", "AutoPowerUpgrade")
 
-    local explain = createCard(Progression, "REMOTE TARGETS")
-    local label = makeLabel(explain, "Rebirth • Ascend • Evolve • UpgradePowerLevel", 10, C.Muted, false)
-    label.Size = UDim2.new(1, 0, 0, 22)
-    label.LayoutOrder = 2
+    local explain = createCard(Progression, "REBIRTH TIMER")
+    local label = makeLabel(explain, "Auto Rebirth interval", 10, C.Muted, false)
+    label.Size = UDim2.new(1, 0, 0, 18)
+    label.LayoutOrder = 1
+
+    local rebirthSliderRow = Instance.new("Frame")
+    rebirthSliderRow.Size = UDim2.new(1, 0, 0, 54)
+    rebirthSliderRow.BackgroundColor3 = C.Surface2
+    rebirthSliderRow.BorderSizePixel = 0
+    rebirthSliderRow.LayoutOrder = 2
+    rebirthSliderRow.Parent = explain
+    corner(rebirthSliderRow, 7)
+    stroke(rebirthSliderRow, C.BorderSoft, 0.25, 1)
+
+    local rebirthSliderName = makeLabel(rebirthSliderRow, "Rebirth Every", 11, C.Text, true)
+    rebirthSliderName.Position = UDim2.fromOffset(11, 7)
+    rebirthSliderName.Size = UDim2.new(0.55, 0, 0, 18)
+
+    local rebirthSliderValue = makeLabel(rebirthSliderRow, formatDuration(CONFIG.RebirthInterval), 10, C.Purple, true)
+    rebirthSliderValue.AnchorPoint = Vector2.new(1, 0)
+    rebirthSliderValue.Position = UDim2.new(1, -11, 0, 7)
+    rebirthSliderValue.Size = UDim2.fromOffset(70, 18)
+    rebirthSliderValue.TextXAlignment = Enum.TextXAlignment.Right
+
+    local rebirthTrack = Instance.new("Frame")
+    rebirthTrack.Position = UDim2.fromOffset(11, 33)
+    rebirthTrack.Size = UDim2.new(1, -22, 0, 6)
+    rebirthTrack.BackgroundColor3 = C.PurpleDark
+    rebirthTrack.BorderSizePixel = 0
+    rebirthTrack.Parent = rebirthSliderRow
+    corner(rebirthTrack, 99)
+
+    local rebirthFill = Instance.new("Frame")
+    rebirthFill.Size = UDim2.new((CONFIG.RebirthInterval - 60) / (14400 - 60), 0, 1, 0)
+    rebirthFill.BackgroundColor3 = C.Purple2
+    rebirthFill.BorderSizePixel = 0
+    rebirthFill.Parent = rebirthTrack
+    corner(rebirthFill, 99)
+
+    local rebirthDrag = Instance.new("TextButton")
+    rebirthDrag.BackgroundTransparency = 1
+    rebirthDrag.Text = ""
+    rebirthDrag.Size = UDim2.new(1, 12, 1, 16)
+    rebirthDrag.Position = UDim2.fromOffset(-6, -5)
+    rebirthDrag.Parent = rebirthTrack
+
+    local draggingRebirthSlider = false
+
+    local function updateRebirthSlider(x)
+        local rel = math.clamp(
+            (x - rebirthTrack.AbsolutePosition.X) / math.max(rebirthTrack.AbsoluteSize.X, 1),
+            0, 1
+        )
+
+        -- 1 minute .. 4 hours. Snap to whole minutes for predictable timing.
+        local value = math.floor((60 + rel * (14400 - 60)) / 60 + 0.5) * 60
+        value = math.clamp(value, 60, 14400)
+
+        CONFIG.RebirthInterval = value
+        rebirthSliderValue.Text = formatDuration(value)
+        rebirthFill.Size = UDim2.new((value - 60) / (14400 - 60), 0, 1, 0)
+
+        -- If the slider is changed while Auto Rebirth is enabled,
+        -- keep the next cycle measured from the latest setting point.
+        if ENABLED.AutoRebirth then
+            lastRebirthTime = os.clock()
+        end
+    end
+
+    connect(rebirthDrag.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            draggingRebirthSlider = true
+            updateRebirthSlider(input.Position.X)
+        end
+    end)
+
+    connect(UserInputService.InputChanged, function(input)
+        if draggingRebirthSlider
+        and (input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch) then
+            updateRebirthSlider(input.Position.X)
+        end
+    end)
+
+    connect(UserInputService.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            draggingRebirthSlider = false
+        end
+    end)
+
+    local explain2 = createCard(Progression, "REMOTE TARGETS")
+    local label2 = makeLabel(explain2, "Rebirth • Ascend • Evolve • UpgradePowerLevel", 10, C.Muted, false)
+    label2.Size = UDim2.new(1, 0, 0, 22)
+    label2.LayoutOrder = 1
 end
 
 -- Bonus
@@ -1513,7 +1706,6 @@ do
     local sClick = createValueRow(c1, "INCOME CLICKS", function() return STATS.clicks end)
     local sStands = createValueRow(c1, "STANDS UPGRADED", function() return STATS.standsUpgraded end)
     local sFruit = createValueRow(c1, "FRUIT COLLECTED", function() return STATS.fruitCollected end)
-    local sDrop = createValueRow(c1, "DROPS COLLECTED", function() return STATS.dropsCollected end)
     local sPhone = createValueRow(c1, "PHONE OFFERS", function() return STATS.phoneOffers end)
     local sVine = createValueRow(c1, "VINE COLLECTED", function() return STATS.vineCollected end)
 
@@ -1534,7 +1726,6 @@ do
                 sClick.Update()
                 sStands.Update()
                 sFruit.Update()
-                sDrop.Update()
                 sPhone.Update()
                 sVine.Update()
                 sCash.Update()
@@ -2001,10 +2192,6 @@ task.spawn(function()
             pcall(autoClickStep)
         end
 
-        if ENABLED.AutoCollectDrops then
-            pcall(autoCashDropsStep)
-        end
-
         if ENABLED.AutoRebirth then
             pcall(autoRebirthStep)
         end
@@ -2070,7 +2257,6 @@ task.spawn(function()
     buildStandRFCache()
     buildWakeRFCache()
     setupPhoneOffer()
-    setupDropRemote()
 end)
 
 --==============================================================
