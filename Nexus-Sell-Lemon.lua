@@ -1,7 +1,7 @@
 --[[
     NEXUS • SELL LEMON
     Cosmic Purple visual theme; no neon effects.
-    v5 — timed rebirth control, drop collector removed.
+    v10 — optimized orchard harvest cache; UI construction fixed; thumbnail loading no longer blocks menu.
     Standalone UI — NO MacLib dependency.
 
     Ported functionality from the supplied Sell Lemon / NEXUS • SELL LEMON script:
@@ -64,11 +64,13 @@ local CONFIG = {
     FruitSweepDelay = 5,
     PhoneOfferResponse = "Accept",
     RebirthInterval = 3600, -- 1 minute .. 4 hours; default 1 hour
+    StandUpgradeAmount = 5, -- 5 / 25 / 100 / "Max"
 }
 
 local ENABLED = {
     AutoBuyUpgrades = false,
     AutoCollectFruit = false,
+    AutoHarvestGarden = false,
     AutoClick = false,
     AutoPhoneOffer = false,
     AutoUpgradeStands = false,
@@ -89,6 +91,7 @@ local ENABLED = {
 local STATS = {
     upgradesBought = 0,
     fruitCollected = 0,
+    gardenHarvests = 0,
     clicks = 0,
     phoneOffers = 0,
     standsUpgraded = 0,
@@ -228,7 +231,7 @@ local function makeLabel(parent, text, size, color, bold)
     local l = Instance.new("TextLabel")
     l.BackgroundTransparency = 1
     l.BorderSizePixel = 0
-    l.Text = text or ""
+    l.Text = tostring(text or "")
     l.TextColor3 = color or C.Text
     l.TextSize = size or 14
     l.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
@@ -456,8 +459,51 @@ local function buildStandRFCache()
 end
 
 local lastStandTick = 0
+local standUpgradeBusy = {}
+
+local function doStandUpgrade(upgradeRF)
+    if not upgradeRF or not upgradeRF.Parent then return end
+    if standUpgradeBusy[upgradeRF] then return end
+
+    standUpgradeBusy[upgradeRF] = true
+    task.spawn(function()
+        local mode = CONFIG.StandUpgradeAmount
+
+        if mode == "Max" then
+            -- The game remote is known to accept a numeric batch size (the
+            -- original script used 5). For Max, use the largest supported
+            -- batch repeatedly, stopping on an explicit failure/false result
+            -- and capping the loop so one stand can never lock the UI loop.
+            for _ = 1, 25 do
+                if not upgradeRF.Parent then break end
+
+                local ok, result = pcall(function()
+                    return upgradeRF:InvokeServer(100)
+                end)
+
+                if not ok or result == false then
+                    break
+                end
+
+                STATS.standsUpgraded += 1
+                task.wait(0.06)
+            end
+        else
+            local amount = tonumber(mode) or 5
+            local ok = pcall(function()
+                upgradeRF:InvokeServer(amount)
+            end)
+            if ok then
+                STATS.standsUpgraded += 1
+            end
+        end
+
+        standUpgradeBusy[upgradeRF] = nil
+    end)
+end
+
 local function autoUpgradeStandsStep()
-    if os.clock() - lastStandTick < 0.75 then return end
+    if os.clock() - lastStandTick < 0.65 then return end
     lastStandTick = os.clock()
 
     if not next(cachedStandRFs) then
@@ -466,14 +512,7 @@ local function autoUpgradeStandsStep()
     end
 
     for _, upgradeRF in pairs(cachedStandRFs) do
-        task.spawn(function()
-            local ok = pcall(function()
-                upgradeRF:InvokeServer(5)
-            end)
-            if ok then
-                STATS.standsUpgraded += 1
-            end
-        end)
+        doStandUpgrade(upgradeRF)
     end
 end
 
@@ -652,6 +691,243 @@ local function autoCollectFruitStep()
         end
     end)
 end
+
+--==============================================================
+-- AUTO GARDEN HARVEST (OPTIMIZED / EVENT-DRIVEN)
+--==============================================================
+-- The old implementation scanned all of Workspace every 0.5s. That was
+-- expensive on a large orchard (40+ trees) and could tank FPS/ping.
+-- Instead we build a small cache once and keep it updated when prompts or
+-- click detectors are added/removed or when their text/state changes.
+
+local gardenHarvestDebounce = setmetatable({}, {__mode = "k"})
+local gardenCandidates = {}
+local gardenCandidateConnections = setmetatable({}, {__mode = "k"})
+local gardenDirty = true
+local gardenLastPass = 0
+local GARDEN_PASS_INTERVAL = 0.20
+
+local function gardenText(value)
+    if type(value) ~= "string" then return "" end
+    return value:lower():gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local function isGardenActionText(value)
+    local t = gardenText(value)
+    return t == "урожай"
+        or t == "собрать"
+        or t == "harvest"
+        or t == "gather"
+        or t == "collect harvest"
+end
+
+local function isGardenContext(obj)
+    local current = obj
+    for _ = 1, 10 do
+        if not current then break end
+        local n = gardenText(current.Name)
+        if n:find("garden", 1, true)
+            or n:find("orchard", 1, true)
+            or n:find("crop", 1, true)
+            or n:find("plant", 1, true)
+            or n:find("сад", 1, true)
+            or n:find("урож", 1, true) then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
+end
+
+local function isCashContext(obj)
+    local current = obj
+    for _ = 1, 10 do
+        if not current then break end
+        local n = gardenText(current.Name)
+        if n:find("cash", 1, true)
+            or n:find("money", 1, true)
+            or n:find("coin", 1, true)
+            or n:find("drop", 1, true)
+            or n:find("деньг", 1, true)
+            or n:find("монет", 1, true)
+            or n:find("меш", 1, true) then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
+end
+
+local function isGardenCandidate(obj)
+    if not obj or not obj.Parent then return false end
+    if isCashContext(obj) then return false end
+
+    if obj:IsA("ProximityPrompt") then
+        local action = isGardenActionText(obj.ActionText)
+        local object = isGardenActionText(obj.ObjectText)
+        local name = isGardenActionText(obj.Name)
+
+        -- Prefer the exact UI action from the screenshot. Generic "Collect"
+        -- is intentionally NOT accepted anymore because it can belong to cash.
+        if action or name or object then
+            if action or name or object then
+                return true
+            end
+            return isGardenContext(obj)
+        end
+
+        return false
+    end
+
+    if obj:IsA("ClickDetector") then
+        local name = isGardenActionText(obj.Name)
+        local parentName = obj.Parent and isGardenActionText(obj.Parent.Name)
+        local grandName = obj.Parent and obj.Parent.Parent and isGardenActionText(obj.Parent.Parent.Name)
+        if name or parentName or grandName then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function removeGardenCandidate(obj)
+    gardenCandidates[obj] = nil
+    local bucket = gardenCandidateConnections[obj]
+    if bucket then
+        for _, c in ipairs(bucket) do
+            pcall(function() c:Disconnect() end)
+        end
+        gardenCandidateConnections[obj] = nil
+    end
+end
+
+local function refreshGardenCandidate(obj)
+    if not obj then return end
+    removeGardenCandidate(obj)
+
+    if not (obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector")) then
+        return
+    end
+
+    if not isGardenCandidate(obj) then
+        return
+    end
+
+    gardenCandidates[obj] = true
+    local bucket = {}
+
+    if obj:IsA("ProximityPrompt") then
+        table.insert(bucket, connect(obj:GetPropertyChangedSignal("ActionText"), function()
+            gardenDirty = true
+            refreshGardenCandidate(obj)
+        end))
+        table.insert(bucket, connect(obj:GetPropertyChangedSignal("ObjectText"), function()
+            gardenDirty = true
+            refreshGardenCandidate(obj)
+        end))
+        table.insert(bucket, connect(obj:GetPropertyChangedSignal("Enabled"), function()
+            gardenDirty = true
+        end))
+    end
+
+    gardenCandidateConnections[obj] = bucket
+end
+
+local function interactGardenObject(obj)
+    if not obj or not obj.Parent then return false end
+
+    if gardenHarvestDebounce[obj] and os.clock() - gardenHarvestDebounce[obj] < 1.25 then
+        return false
+    end
+
+    if not isGardenCandidate(obj) then
+        gardenCandidates[obj] = nil
+        return false
+    end
+
+    gardenHarvestDebounce[obj] = os.clock()
+
+    if obj:IsA("ProximityPrompt") then
+        if obj.Enabled == false then return false end
+        local fire = fireproximityprompt
+        if type(fire) ~= "function" then return false end
+
+        local ok = pcall(function()
+            -- No character movement: fire the prompt directly.
+            fire(obj, 1, true)
+        end)
+        if ok then
+            STATS.gardenHarvests += 1
+            return true
+        end
+        return false
+    end
+
+    if obj:IsA("ClickDetector") then
+        local fire = fireclickdetector
+        if type(fire) ~= "function" then return false end
+
+        local ok = pcall(function()
+            fire(obj, 1)
+        end)
+        if ok then
+            STATS.gardenHarvests += 1
+            return true
+        end
+        return false
+    end
+
+    return false
+end
+
+local function autoHarvestGardenStep(forcePass)
+    if not ENABLED.AutoHarvestGarden then return end
+
+    local now = os.clock()
+    if not forcePass and now - gardenLastPass < GARDEN_PASS_INTERVAL then
+        return
+    end
+    gardenLastPass = now
+
+    -- The cache is tiny compared to Workspace, so this remains cheap even
+    -- with dozens of orchard trees.
+    for obj in pairs(gardenCandidates) do
+        if not obj or not obj.Parent then
+            removeGardenCandidate(obj)
+            continue
+        end
+
+        if isGardenCandidate(obj) then
+            interactGardenObject(obj)
+        else
+            removeGardenCandidate(obj)
+        end
+    end
+
+    gardenDirty = false
+end
+
+-- Build the cache ONCE. This is intentionally not placed in a fast loop.
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    if obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") then
+        refreshGardenCandidate(obj)
+    end
+end
+
+connect(Workspace.DescendantAdded, function(obj)
+    if obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") then
+        refreshGardenCandidate(obj)
+        gardenDirty = true
+    end
+end)
+
+connect(Workspace.DescendantRemoving, function(obj)
+    if obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") then
+        removeGardenCandidate(obj)
+        gardenDirty = true
+    end
+end)
 
 local cachedWakeRF = nil
 local function buildWakeRFCache()
@@ -1224,13 +1500,18 @@ Avatar.BorderSizePixel = 0
 Avatar.Parent = Profile
 corner(Avatar, 9)
 
-pcall(function()
-    local image = Players:GetUserThumbnailAsync(
-        LocalPlayer.UserId,
-        Enum.ThumbnailType.AvatarBust,
-        Enum.ThumbnailSize.Size48x48
-    )
-    Avatar.Image = image
+-- Never block UI construction on thumbnail/network loading.
+task.spawn(function()
+    pcall(function()
+        local image, ready = Players:GetUserThumbnailAsync(
+            LocalPlayer.UserId,
+            Enum.ThumbnailType.AvatarBust,
+            Enum.ThumbnailSize.Size48x48
+        )
+        if ready and image and Avatar.Parent then
+            Avatar.Image = image
+        end
+    end)
 end)
 
 local ProfileName = makeLabel(Profile, LocalPlayer.DisplayName, 12, C.Text, true)
@@ -1486,6 +1767,65 @@ local function createToggle(parent, title, desc, key)
     }
 end
 
+local function createChoice(parent, title, options, getter, setter)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 48)
+    row.BackgroundColor3 = C.Surface2
+    row.BorderSizePixel = 0
+    row.Parent = parent
+    corner(row, 7)
+    stroke(row, C.BorderSoft, 0.25, 1)
+
+    local label = makeLabel(row, title, 10, C.Text, true)
+    label.Position = UDim2.fromOffset(10, 5)
+    label.Size = UDim2.new(1, 0, 0, 15)
+
+    local buttons = {}
+    local holder = Instance.new("Frame")
+    holder.Position = UDim2.fromOffset(10, 23)
+    holder.Size = UDim2.new(1, -20, 0, 20)
+    holder.BackgroundTransparency = 1
+    holder.Parent = row
+
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.Padding = UDim.new(0, 5)
+    layout.Parent = holder
+
+    local function refresh()
+        local current = getter()
+        for value, button in pairs(buttons) do
+            local selected = tostring(value) == tostring(current)
+            button.BackgroundColor3 = selected and C.PurpleDark or C.Background
+            button.TextColor3 = selected and C.White or C.SubText
+        end
+    end
+
+    for _, value in ipairs(options) do
+        local button = Instance.new("TextButton")
+        button.AutoButtonColor = false
+        button.Size = UDim2.new(0.25, -4, 1, 0)
+        button.BackgroundColor3 = C.Background
+        button.BorderSizePixel = 0
+        button.Text = tostring(value)
+        button.TextSize = 9
+        button.Font = Enum.Font.GothamSemibold
+        button.TextColor3 = C.SubText
+        button.Parent = holder
+        corner(button, 5)
+        stroke(button, C.BorderSoft, 0.3, 1)
+        buttons[value] = button
+
+        connect(button.MouseButton1Click, function()
+            setter(value)
+            refresh()
+        end)
+    end
+
+    refresh()
+    return {Row = row, Refresh = refresh}
+end
+
 local function createActionButton(parent, title, callback)
     local b = makeButton(parent, title, 36)
     b.TextXAlignment = Enum.TextXAlignment.Center
@@ -1562,10 +1902,12 @@ do
     local c1 = createCard(left, "INCOME")
     createToggle(c1, "Auto Buy Upgrades", "Purchases enabled and visible upgrade buttons.", "AutoBuyUpgrades")
     createToggle(c1, "Auto Click Income", "Wakes all configured lemon income streams.", "AutoClick")
-    createToggle(c1, "Auto Upgrade Stands", "Invokes cached stand upgrade remotes.", "AutoUpgradeStands")
+    createToggle(c1, "Auto Upgrade Stands", "Upgrades money-making stands in the selected batch size.", "AutoUpgradeStands")
+    createChoice(c1, "Stand Upgrade Batch", {5, 25, 100, "Max"}, function() return CONFIG.StandUpgradeAmount end, function(v) CONFIG.StandUpgradeAmount = v end)
     createToggle(c1, "Auto Collect Fruit", "Sweeps LemonTree fruit and clicks detectors.", "AutoCollectFruit")
 
     local c2 = createCard(right, "COLLECTORS")
+    createToggle(c2, "Auto Harvest Garden", "Automatically activates your garden's Collect / Harvest controls without teleporting.", "AutoHarvestGarden")
     createToggle(c2, "Auto Cash Vine", "Uses the Sewer CashVine remote.", "AutoCashVine")
     createToggle(c2, "Auto Phone Offer", "Automatically responds to phone offers.", "AutoPhoneOffer")
 end
@@ -1706,6 +2048,7 @@ do
     local sClick = createValueRow(c1, "INCOME CLICKS", function() return STATS.clicks end)
     local sStands = createValueRow(c1, "STANDS UPGRADED", function() return STATS.standsUpgraded end)
     local sFruit = createValueRow(c1, "FRUIT COLLECTED", function() return STATS.fruitCollected end)
+    local sGarden = createValueRow(c1, "GARDEN HARVESTS", function() return STATS.gardenHarvests end)
     local sPhone = createValueRow(c1, "PHONE OFFERS", function() return STATS.phoneOffers end)
     local sVine = createValueRow(c1, "VINE COLLECTED", function() return STATS.vineCollected end)
 
@@ -1726,6 +2069,7 @@ do
                 sClick.Update()
                 sStands.Update()
                 sFruit.Update()
+                sGarden.Update()
                 sPhone.Update()
                 sVine.Update()
                 sCash.Update()
@@ -2234,6 +2578,16 @@ task.spawn(function()
 
         if ENABLED.AutoPhoneOffer and activeOffer and not offerHandled then
             pcall(respondToOffer)
+        end
+    end
+end)
+
+-- Garden harvest uses direct interactions and never changes character position.
+task.spawn(function()
+    while ScreenGui.Parent do
+        task.wait(0.20)
+        if ENABLED.AutoHarvestGarden then
+            pcall(autoHarvestGardenStep, gardenDirty)
         end
     end
 end)
