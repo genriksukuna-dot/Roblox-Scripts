@@ -1,15 +1,18 @@
 --//======================================================
---// NEXUS TACTICAL HUB - READY BUILD
+--// NEXUS TACTICAL HUB - CREDITS + TELEGRAM COPY NOTIFICATION
 --//
---// Added:
---//  • MINING SIMULATOR card
---//  • New SIMULATOR category
---//  • Screenshot/asset ID: 119409460606266
---//  • Mining Simulator functionality catalog synced with
---//    Nexus-Mining-Simulator.lua
---//  • Removed automatic Mining Simulator execution on Hub start
---//  • LOAD SCRIPT / RUN now execute the selected profile only
---//  • Existing search, filters, details, credits and telemetry retained
+--// Fixes:
+--//  • Load Script button is actually created
+--//  • Run + Load Script execute the selected game script
+--//  • Close button works reliably (Activated)
+--//  • Two green Online dots + Online text, moved left
+--//  • User avatar has a gray outline
+--//  • Roblox account ID is shown under the username
+--//  • FPS / Ping use live client values
+--//  • Supplied screenshot/asset IDs are restored
+--//  • Search + ALL / SHUTER / OBI filtering retained
+--//  • Details page still covers the whole hub
+--//  • Tower of Hell card + functionality catalog added
 --//======================================================
 
 local Players = game:GetService("Players")
@@ -18,125 +21,8 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local ContentProvider = game:GetService("ContentProvider")
-local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
-
---=======================================================
--- NEXUS CONTROL API / TELEMETRY
---=======================================================
-
-local TELEMETRY = {
-    Enabled = true,
-    BaseUrl = "http://91.219.60.83:3000",
-    ClientKey = "7b3e907e20e18c634042d86b443b15b8a1f9ae2f5ff7f11b",
-    Version = "1.1.0",
-    HeartbeatInterval = 30,
-}
-
-local function getHttpRequest()
-    local candidates = {
-        type(request) == "function" and request or nil,
-        type(http_request) == "function" and http_request or nil,
-        syn and type(syn.request) == "function" and syn.request or nil,
-        http and type(http.request) == "function" and http.request or nil,
-        fluxus and type(fluxus.request) == "function" and fluxus.request or nil,
-    }
-
-    for _, fn in ipairs(candidates) do
-        if fn then
-            return fn
-        end
-    end
-
-    return nil
-end
-
-local function telemetryPlatform()
-    local touch = false
-    local keyboard = false
-
-    pcall(function()
-        touch = UserInputService.TouchEnabled
-        keyboard = UserInputService.KeyboardEnabled
-    end)
-
-    if touch and not keyboard then
-        return "Mobile"
-    elseif touch and keyboard then
-        return "Hybrid"
-    end
-
-    return "PC"
-end
-
-local function telemetryClientId()
-    return "rbx:" .. tostring(LocalPlayer.UserId)
-end
-
-local function telemetryRequest(endpoint, body)
-    if not TELEMETRY.Enabled then
-        return false, "disabled"
-    end
-
-    local httpRequest = getHttpRequest()
-    if not httpRequest then
-        return false, "request function unavailable"
-    end
-
-    local ok, response = pcall(function()
-        return httpRequest({
-            Url = TELEMETRY.BaseUrl .. endpoint,
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json",
-                ["x-nexus-client-key"] = TELEMETRY.ClientKey,
-            },
-            Body = HttpService:JSONEncode(body),
-        })
-    end)
-
-    if not ok then
-        return false, response
-    end
-
-    return true, response
-end
-
-local function sendLaunch()
-    task.spawn(function()
-        telemetryRequest("/api/launch", {
-            clientId = telemetryClientId(),
-            version = TELEMETRY.Version,
-            platform = telemetryPlatform(),
-        })
-    end)
-end
-
-local function sendHeartbeat()
-    task.spawn(function()
-        telemetryRequest("/api/heartbeat", {
-            clientId = telemetryClientId(),
-            version = TELEMETRY.Version,
-            platform = telemetryPlatform(),
-            username = tostring(LocalPlayer.Name),
-        })
-    end)
-end
-
-task.spawn(function()
-    if not TELEMETRY.Enabled then
-        return
-    end
-
-    sendLaunch()
-    task.wait(2)
-
-    while true do
-        sendHeartbeat()
-        task.wait(TELEMETRY.HeartbeatInterval)
-    end
-end)
 
 --=======================================================
 -- CONFIG
@@ -157,20 +43,32 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(0, 255, 170),
             Features = {
                 { Category = "INTERFACE", Items = {
-                    "Tactical Engine Interface", "Tabbed Sections", "English / Russian / Spanish UI",
-                    "Menu Sounds", "UI Animations",
+                    "Tactical Engine Interface",
+                    "Tabbed Sections",
+                    "English / Russian / Spanish UI",
+                    "Menu Sounds",
+                    "UI Animations",
                 } },
                 { Category = "VISUAL SETTINGS", Items = {
-                    "FOV Ring Display", "Custom Crosshair Display", "Theme Selection", "Menu Style Selection",
+                    "FOV Ring Display",
+                    "Custom Crosshair Display",
+                    "Theme Selection",
+                    "Menu Style Selection",
                 } },
                 { Category = "CONFIGURATION", Items = {
-                    "Language Selection", "Theme Configuration", "Style Configuration", "Menu Preferences",
+                    "Language Selection",
+                    "Theme Configuration",
+                    "Style Configuration",
+                    "Menu Preferences",
                 } },
                 { Category = "MATCH INFO", Items = {
-                    "Match Diagnostics", "Live Statistics", "Server / Session Information",
+                    "Match Diagnostics",
+                    "Live Statistics",
+                    "Server / Session Information",
                 } },
                 { Category = "GENERAL", Items = {
-                    "Nexus Interface", "Quick Launch Panel",
+                    "Nexus Interface",
+                    "Quick Launch Panel",
                 } },
             },
         },
@@ -186,10 +84,21 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(130, 80, 255),
             Features = {
                 { Category = "AIM", Items = {
-                    "Aim Assist", "Target Closest", "Team Check", "FOV Radius", "Smoothness", "Max Range",
+                    "Aim Assist",
+                    "Target Closest",
+                    "Team Check",
+                    "FOV Radius",
+                    "Smoothness",
+                    "Max Range",
                 } },
                 { Category = "VISUAL", Items = {
-                    "2D Boxes", "Player Names", "Health Bars", "Distance Tag", "Snaplines", "Visible Only", "Max Distance",
+                    "2D Boxes",
+                    "Player Names",
+                    "Health Bars",
+                    "Distance Tag",
+                    "Snaplines",
+                    "Visible Only",
+                    "Max Distance",
                 } },
                 { Category = "CONFIG", Items = {
                     "Config Manager",
@@ -208,28 +117,47 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(255, 180, 50),
             Features = {
                 { Category = "AIMBOT", Items = {
-                    "Aimbot", "Hitbox Expander", "FOV", "Visibility Check", "Team Check", "Target Part", "Smoothness", "No Recoil",
+                    "Aimbot",
+                    "Hitbox Expander",
+                    "FOV",
+                    "Visibility Check",
+                    "Team Check",
+                    "Target Part",
+                    "Smoothness",
+                    "No Recoil",
                 } },
                 { Category = "ESP", Items = {
-                    "Boxes", "Skeleton", "Snaplines", "Names", "Distance", "Health Bar", "Team Check",
+                    "Boxes",
+                    "Skeleton",
+                    "Snaplines",
+                    "Names",
+                    "Distance",
+                    "Health Bar",
+                    "Team Check",
                 } },
                 { Category = "SETTINGS", Items = {
-                    "Watermark", "Rainbow FOV",
+                    "Watermark",
+                    "Rainbow FOV",
                 } },
                 { Category = "CONFIG", Items = {
-                    "Save Config", "Load Config",
+                    "Save Config",
+                    "Load Config",
                 } },
                 { Category = "THEMES", Items = {
-                    "Cyber Neon", "Crimson Blood", "Purple Void",
+                    "Cyber Neon",
+                    "Crimson Blood",
+                    "Purple Void",
                 } },
             },
         },
+
+
 
         {
             Id = "MurderMystery2",
             Title = "MURDER MYSTERY 2",
             Category = "SHUTER",
-            Description = "Full MM2 profile with aim assist, role ESP, gun automation, teleport, coin farm, movement and config tools.",
+            Description = "Full MM2 profile with aim assist, role ESP, sheriff-gun automation, teleport, coin farm, movement, combat helper and config tools.",
             AssetId = "115152978072604",
             PlaceId = "115152978072604",
             ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-Murder-Mistery-2.lua",
@@ -237,41 +165,82 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(76, 122, 255),
             Features = {
                 { Category = "HOME / TELEPORT", Items = {
-                    "Teleport To Murderer", "Teleport To Sheriff", "Random Player",
+                    "Teleport To Murderer",
+                    "Teleport To Sheriff",
+                    "Random Player",
                 } },
                 { Category = "COMBAT / AIM", Items = {
-                    "Aim Assist", "Auto Teleport Gun", "FOV", "Smoothness", "Team Check",
-                    "Visible Check", "Combat Helper", "Auto Equip", "Attack Range",
+                    "Aim Assist",
+                    "Auto Teleport Gun",
+                    "FOV",
+                    "Smoothness",
+                    "Team Check",
+                    "Visible Check",
+                    "Combat Helper",
+                    "Auto Equip",
+                    "Attack Range",
                 } },
                 { Category = "ESP", Items = {
-                    "ESP", "Boxes / Highlights", "Names", "Roles", "Distance", "Tracers",
-                    "Murderer / Sheriff / Innocent Detection", "Live Role Refresh", "Server Role Data",
+                    "ESP",
+                    "Boxes / Highlights",
+                    "Names",
+                    "Roles",
+                    "Distance",
+                    "Tracers",
+                    "Murderer / Sheriff / Innocent Role Detection",
+                    "Live Role Refresh",
+                    "Server Role Data",
                 } },
                 { Category = "FARM", Items = {
-                    "Auto Farm", "Farm Speed", "Collect Nearest Pickup", "Find Murderer",
-                    "Coin / Coins", "CoinDrop", "Cash / CashDrop", "Token", "Pickup", "Collectible",
+                    "Auto Farm",
+                    "Farm Speed",
+                    "Collect Nearest Pickup",
+                    "Find Murderer",
+                    "Coin / Coins",
+                    "CoinDrop",
+                    "Cash / CashDrop",
+                    "Token",
+                    "Pickup",
+                    "Collectible",
                 } },
                 { Category = "MOVEMENT", Items = {
-                    "WalkSpeed", "Safe Speed", "Safe Speed Cap", "JumpPower", "Noclip",
-                    "Infinite Jump", "Reset Movement",
+                    "WalkSpeed",
+                    "Safe Speed",
+                    "Safe Speed Cap",
+                    "JumpPower",
+                    "Noclip",
+                    "Infinite Jump",
+                    "Reset Movement",
                 } },
                 { Category = "SETTINGS", Items = {
-                    "Reset Position", "Save Config", "Load Config", "Copy Config JSON",
-                    "Reset Saved Config", "Rebuild ESP", "Search Combat Remote",
-                    "Session Config Cache", "NEXUS_MM2_Config.json",
+                    "Reset Position",
+                    "Save Config",
+                    "Load Config",
+                    "Copy Config JSON",
+                    "Reset Saved Config",
+                    "Rebuild ESP",
+                    "Search Combat Remote",
+                    "Session Config Cache",
+                    "NEXUS_MM2_Config.json",
                 } },
                 { Category = "STATUS / UI", Items = {
-                    "Live Role", "Health", "WalkSpeed", "Player Count", "Aim State",
-                    "Draggable HUD", "Close / Reopen HUD", "RightShift Menu Toggle", "Toast Notifications",
+                    "Live Role",
+                    "Health",
+                    "WalkSpeed",
+                    "Player Count",
+                    "Aim State",
+                    "Draggable HUD",
+                    "Close / Reopen HUD",
+                    "RightShift Menu Toggle",
+                    "Toast Notifications",
                 } },
             },
         },
-
         {
             Id = "MurderDuel",
             Title = "MURDER DUEL",
             Category = "SHUTER",
-            Description = "Full Murder Duel profile with combat automation, kill-all tools, abilities, duel pads, FOV shooting, ESP and movement utilities.",
+            Description = "Full Murder Duel profile with combat automation, kill-all tools, ability controls, duel-pad automation, FOV shooting, ESP and movement utilities.",
             AssetId = "138729049229616",
             PlaceId = "138729049229616",
             ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-Murder-Duel.lua",
@@ -279,46 +248,96 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(83, 231, 255),
             Features = {
                 { Category = "COMBAT", Items = {
-                    "Auto UnAnchor Character", "Remove Gun Cooldown", "Autoshoot", "Autoshoot Distance",
-                    "Autoshoot Cooldown", "Auto Throw Knife", "Throw Distance", "Throw Cooldown",
-                    "Triggerbot", "Triggerbot Cooldown",
+                    "Auto UnAnchor Character",
+                    "Remove Gun Cooldown",
+                    "Autoshoot",
+                    "Autoshoot Distance",
+                    "Autoshoot Cooldown",
+                    "Auto Throw Knife",
+                    "Throw Distance",
+                    "Throw Cooldown",
+                    "Triggerbot",
+                    "Triggerbot Cooldown",
                 } },
                 { Category = "KILL ALL", Items = {
-                    "Kill All Players Once - Gun", "Auto Kill Players - Gun", "Equip Gun",
-                    "Kill All Players Once - Knife", "Auto Kill Players - Knife", "Equip Knife",
+                    "Kill All Players Once - Gun",
+                    "Auto Kill Players - Gun",
+                    "Equip Gun",
+                    "Kill All Players Once - Knife",
+                    "Auto Kill Players - Knife",
+                    "Equip Knife",
                 } },
                 { Category = "ABILITY", Items = {
-                    "Auto Shroud Players", "Low Executor Mode", "Shrouds / Enemy",
-                    "Remove Sprint Cooldown", "Remove Dash Cooldown", "Remove Shroud Cooldown",
-                    "Remove Soul Reap Combat Delay", "Sprint Cooldown", "Dash Cooldown",
-                    "Shroud Cooldown", "Soul Reap Combat Delay", "Sprint Time", "Sprint Boost",
-                    "Soul Reap Time", "Soul Reap Speed Boost", "Propeller Jump Boost",
-                    "Shroud Time", "Shroud Projectile Speed", "Shroud Projectile Range",
+                    "Auto Shroud Players",
+                    "Low Executor Mode",
+                    "Shrouds / Enemy",
+                    "Remove Sprint Cooldown",
+                    "Remove Dash Cooldown",
+                    "Remove Shroud Cooldown",
+                    "Remove Soul Reap Combat Delay",
+                    "Sprint Cooldown",
+                    "Dash Cooldown",
+                    "Shroud Cooldown",
+                    "Soul Reap Combat Delay",
+                    "Sprint Time",
+                    "Sprint Boost",
+                    "Soul Reap Time",
+                    "Soul Reap Speed Boost",
+                    "Propeller Jump Boost",
+                    "Shroud Time",
+                    "Shroud Projectile Speed",
+                    "Shroud Projectile Range",
                 } },
                 { Category = "TELEPORT", Items = {
-                    "Auto Walk To Duel Pads", "Prefer Occupied Locations With Free Slot",
-                    "Find Occupied + Free Slot", "Find Best Available Pad", "Stop Auto Walk",
-                    "Refresh Duel Pad Buttons", "Walk To 1v1 Duel Pad", "Walk To 2v2 Duel Pad",
-                    "Walk To 3v3 Duel Pad", "Walk To 4v4 Duel Pad", "Noclip While Auto Walking",
+                    "Auto Walk To Duel Pads",
+                    "Prefer Occupied Locations With Free Slot",
+                    "Find Occupied + Free Slot",
+                    "Find Best Available Pad",
+                    "Stop Auto Walk",
+                    "Refresh Duel Pad Buttons",
+                    "Walk To 1v1 Duel Pad",
+                    "Walk To 2v2 Duel Pad",
+                    "Walk To 3v3 Duel Pad",
+                    "Walk To 4v4 Duel Pad",
+                    "Noclip While Auto Walking",
                 } },
                 { Category = "FOV", Items = {
-                    "Enable FOV Circle", "Autoshoot FOV", "FOV Manual Shoot", "FOV Circle Size", "FOV Shoot Cooldown",
+                    "Enable FOV Circle",
+                    "Autoshoot FOV",
+                    "FOV Manual Shoot",
+                    "FOV Circle Size",
+                    "FOV Shoot Cooldown",
                 } },
                 { Category = "ESP", Items = {
-                    "ESP Charms", "ESP Skeleton", "ESP Tracers", "Hitbox Expander",
-                    "Hitbox Size", "Team Color", "Enemy Color", "Cycle ESP Colors",
+                    "ESP Charms",
+                    "ESP Skeleton",
+                    "ESP Tracers",
+                    "Hitbox Expander",
+                    "Hitbox Size",
+                    "Team Color",
+                    "Enemy Color",
+                    "Cycle ESP Colors",
                 } },
                 { Category = "MOVEMENT / MISC", Items = {
-                    "Auto Spin", "Noclip", "Enable Speed Changer", "Walk Speed",
-                    "Live Match Status", "Live Enemy Count",
+                    "Auto Spin",
+                    "Noclip",
+                    "Enable Speed Changer",
+                    "Walk Speed",
+                    "Live Match Status",
+                    "Live Enemy Count",
                 } },
                 { Category = "STATUS", Items = {
-                    "Match State", "Match Enemy Count", "Gun Ready State", "Platform Detection",
-                    "Ping", "Player Display Name", "Place ID", "Script Runtime State",
+                    "Match State",
+                    "Match Enemy Count",
+                    "Gun Ready State",
+                    "Platform Detection",
+                    "Ping",
+                    "Player Display Name",
+                    "Place ID",
+                    "Script Runtime State",
                 } },
             },
         },
-
         {
             Id = "Nights99",
             Title = "99 NIGHTS IN THE FOREST",
@@ -330,71 +349,90 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(54, 180, 92),
             Features = {
                 { Category = "HOME", Items = {
-                    "Refresh ESP", "Bring All Items", "Bring Weapons", "Bring Food", "Bring Scrap",
-                    "Bring Gems", "Bring Heals", "Bring Enemy Drops", "Open All Item Chests",
-                    "God Mode", "Teleport To Camp",
+                    "Refresh ESP",
+                    "Bring All Items",
+                    "Bring Weapons",
+                    "Bring Food",
+                    "Bring Scrap",
+                    "Bring Gems",
+                    "Bring Heals",
+                    "Bring Enemy Drops",
+                    "Open All Item Chests",
+                    "God Mode",
+                    "Teleport To Camp",
                 } },
                 { Category = "COMBAT", Items = {
-                    "Combat Engine", "Kill Aura", "Tree Aura", "Freeze Enemies", "Kill All Enemies",
-                    "Bring Enemy Drops", "Chop All Trees", "Kill Aura Radius", "Tree Radius",
+                    "Combat Engine",
+                    "Kill Aura",
+                    "Tree Aura",
+                    "Freeze Enemies",
+                    "Kill All Enemies",
+                    "Bring Enemy Drops",
+                    "Chop All Trees",
+                    "Kill Aura Radius",
+                    "Tree Radius",
                 } },
                 { Category = "AUTOMATION", Items = {
-                    "Auto Chop", "Auto Eat", "Auto Heal", "Auto Fuel", "Campfire Zone Feed",
-                    "Bring Items", "Bring Trees", "Bring Chopped", "Auto Plant", "Auto Cook",
-                    "Bring Food", "Bring Fuel", "Bring Weapons", "Bring Scrap", "Bring Gems",
-                    "Bring Heals", "Bring Armor", "Bring Explosives", "Open All Item Chests",
+                    "Auto Chop",
+                    "Auto Eat",
+                    "Auto Heal",
+                    "Auto Fuel",
+                    "Campfire Zone Feed",
+                    "Bring Items",
+                    "Bring Trees",
+                    "Bring Chopped",
+                    "Auto Plant",
+                    "Auto Cook",
+                    "Bring Food",
+                    "Bring Fuel",
+                    "Bring Weapons",
+                    "Bring Scrap",
+                    "Bring Gems",
+                    "Bring Heals",
+                    "Bring Armor",
+                    "Bring Explosives",
+                    "Open All Item Chests",
                 } },
                 { Category = "VISUALS", Items = {
-                    "Players ESP", "Enemy ESP", "Item ESP", "Chest ESP", "Child ESP",
-                    "Fullbright", "No Fog", "Instant Interact", "Refresh ESP", "Clear ESP",
+                    "Players ESP",
+                    "Enemy ESP",
+                    "Item ESP",
+                    "Chest ESP",
+                    "Child ESP",
+                    "Fullbright",
+                    "No Fog",
+                    "Instant Interact",
+                    "Refresh ESP",
+                    "Clear ESP",
                 } },
                 { Category = "MOVEMENT", Items = {
-                    "Speed", "Walk Speed", "Fly", "Fly Speed", "No Clip", "Infinite Jump", "Anti AFK",
+                    "Speed",
+                    "Walk Speed",
+                    "Fly",
+                    "Fly Speed",
+                    "No Clip",
+                    "Infinite Jump",
+                    "Anti AFK",
                 } },
                 { Category = "TELEPORT", Items = {
-                    "Teleport To Camp", "Teleport To Named Location", "Teleport To Player",
-                    "Player Name / Display Name Search", "Teleport To Cursor", "Teleport Helpers",
+                    "Teleport To Camp",
+                    "Teleport To Named Location",
+                    "Teleport To Player",
+                    "Player Name / Display Name Search",
+                    "Teleport To Cursor",
+                    "Teleport Helpers",
                 } },
                 { Category = "SETTINGS", Items = {
-                    "Rebuild UI", "Restore Lighting", "Restore Movement", "Clear ESP",
-                    "Unload Nexus", "Saved Original Movement / Lighting State",
+                    "Rebuild UI",
+                    "Restore Lighting",
+                    "Restore Movement",
+                    "Clear ESP",
+                    "Unload Nexus",
+                    "Saved Original Movement / Lighting State",
                 } },
             },
         },
 
-        {
-            Id = "TowerOfHell",
-            Title = "TOWER OF HELL",
-            Category = "OBI",
-            Description = "Tower of Hell profile with movement, jump, teleport, server, configuration and profile modules.",
-            AssetId = "127599163236219",
-            ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-Tower-of-Hell.lua",
-            Accent = Color3.fromRGB(255, 43, 139),
-            Accent2 = Color3.fromRGB(132, 79, 255),
-            Features = {
-                { Category = "MOVEMENT", Items = {
-                    "FLY", "Fly Speed", "Camera-relative 3D movement",
-                } },
-                { Category = "JUMP", Items = {
-                    "INFINITE JUMP", "BIG JUMP", "Jump Power",
-                } },
-                { Category = "PLAYER TELEPORT", Items = {
-                    "Player List", "Select Player", "Teleport To Selected Player", "Live Player List Refresh",
-                } },
-                { Category = "SERVER", Items = {
-                    "Job ID", "Rejoin Current Server", "Server Link", "Copy Server Link",
-                } },
-                { Category = "CONFIGURATION", Items = {
-                    "Save Configuration", "Load Configuration", "Reset Configuration",
-                } },
-                { Category = "STATUS", Items = {
-                    "Live FPS", "Online / Uptime", "Fly Speed Status", "Server / Session Information",
-                } },
-                { Category = "PROFILE", Items = {
-                    "Username", "Display Name", "User ID", "Account Age", "Membership", "Team", "Character Status",
-                } },
-            },
-        },
 
         --===================================================
         -- NEW: MINING SIMULATOR
@@ -411,74 +449,35 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(70, 211, 255),
             Features = {
                 { Category = "MINING / FARM", Items = {
-                    "Auto Mine",
-                    "Auto Farm",
-                    "Fast Mine",
-                    "Target / Mine Route Recovery",
-                    "Farm Area Selection",
-                    "Safe Farm Route",
-                    "Automatic Area Restore",
+                    "Auto Mine", "Auto Farm", "Fast Mine", "Target / Mine Route Recovery",
+                    "Farm Area Selection", "Safe Farm Route", "Automatic Area Restore",
                     "Mining Interval Control",
                 } },
                 { Category = "SELL / REBIRTH", Items = {
-                    "Auto Sell",
-                    "Sell Threshold",
-                    "Auto Rebirth",
-                    "Rebirth Only Mode",
-                    "Independent Rebirth Loop",
-                    "Wallet / Rebirth Cost Detection",
-                    "Post-Sell Route Restore",
-                    "Post-Rebirth Route Restore",
+                    "Auto Sell", "Sell Threshold", "Auto Rebirth", "Rebirth Only Mode",
+                    "Independent Rebirth Loop", "Wallet / Rebirth Cost Detection",
+                    "Post-Sell Route Restore", "Post-Rebirth Route Restore",
                 } },
                 { Category = "UPGRADES / SHOP", Items = {
-                    "Auto Buy Best Backpack",
-                    "Auto Buy Best Tool",
-                    "Auto Equip Best Tool",
-                    "Shop Rescan",
-                    "Shop Cache",
-                    "Purchase Recovery",
+                    "Auto Buy Best Backpack", "Auto Buy Best Tool", "Auto Equip Best Tool",
+                    "Shop Rescan", "Shop Cache", "Purchase Recovery",
                 } },
                 { Category = "WORLD TELEPORT", Items = {
-                    "Teleport To Selected Area",
-                    "Teleport To Max Available Area",
-                    "Cyber",
-                    "Spawn",
-                    "Space",
-                    "Candy",
-                    "Toy",
-                    "Food",
-                    "Dino",
-                    "Sea",
-                    "Beach",
-                    "Cavern",
-                    "Magic Forest",
-                    "Lava / Dynamic World Detection",
+                    "Teleport To Selected Area", "Teleport To Max Available Area",
+                    "Cyber", "Spawn", "Space", "Candy", "Toy", "Food", "Dino", "Sea",
+                    "Beach", "Cavern", "Magic Forest", "Lava / Dynamic World Detection",
                 } },
                 { Category = "MOVEMENT / UTILITY", Items = {
-                    "Sprint",
-                    "Walk Speed Control",
-                    "Anti AFK",
-                    "Character Respawn Recovery",
-                    "Farm Route Reset",
-                    "Remote Auto Discovery",
+                    "Sprint", "Walk Speed Control", "Anti AFK", "Character Respawn Recovery",
+                    "Farm Route Reset", "Remote Auto Discovery",
                 } },
                 { Category = "VISUAL / STATUS", Items = {
-                    "Live FPS",
-                    "Live Ping",
-                    "Player Statistics",
-                    "Attributes Viewer",
-                    "Leaderstats Viewer",
-                    "Backpack Viewer",
-                    "Current Area Status",
-                    "Remote Status",
+                    "Live FPS", "Live Ping", "Player Statistics", "Attributes Viewer",
+                    "Leaderstats Viewer", "Backpack Viewer", "Current Area Status", "Remote Status",
                 } },
                 { Category = "CONFIGURATION", Items = {
-                    "Nexus Mining Hub UI",
-                    "Tab Navigation",
-                    "Automation Stop All",
-                    "Refresh Statistics",
-                    "Mobile / PC Interface",
-                    "RightShift Menu Toggle",
+                    "Nexus Mining Hub UI", "Tab Navigation", "Automation Stop All",
+                    "Refresh Statistics", "Mobile / PC Interface", "RightShift Menu Toggle",
                 } },
             },
         },
@@ -498,46 +497,147 @@ local CONFIG = {
             Accent2 = Color3.fromRGB(111, 75, 174),
             Features = {
                 { Category = "FARM", Items = {
-                    "Auto Buy Upgrades",
-                    "Auto Click Income",
-                    "Auto Upgrade Stands",
-                    "Auto Collect Fruit",
-                    "Auto Collect Drops",
-                    "Auto Cash Vine",
-                    "Auto Phone Offer",
+                    "Auto Buy Upgrades", "Auto Click Income", "Auto Upgrade Stands",
+                    "Auto Collect Fruit", "Auto Collect Drops", "Auto Cash Vine", "Auto Phone Offer",
                 } },
                 { Category = "PROGRESSION", Items = {
-                    "Auto Rebirth",
-                    "Auto Ascend",
-                    "Auto Evolve",
-                    "Auto Power Upgrade",
+                    "Auto Rebirth", "Auto Ascend", "Auto Evolve", "Auto Power Upgrade",
                 } },
                 { Category = "BONUS", Items = {
-                    "Auto Double Offline Cash",
-                    "Auto Use Time Cash",
-                    "Auto Use Earner Boost",
-                    "Auto Minigame Race",
-                    "Auto Minigame Trade",
+                    "Auto Double Offline Cash", "Auto Use Time Cash", "Auto Use Earner Boost",
+                    "Auto Minigame Race", "Auto Minigame Trade",
                 } },
                 { Category = "SETTINGS", Items = {
-                    "Fruit Sweep Delay",
-                    "Phone Offer Response",
-                    "Anti-AFK",
-                    "Boost FPS",
+                    "Fruit Sweep Delay", "Phone Offer Response", "Anti-AFK", "Boost FPS",
                 } },
                 { Category = "STATUS", Items = {
-                    "Live Counters",
-                    "Live Cash",
-                    "Upgrade Statistics",
-                    "Fruit / Drop Statistics",
-                    "Rebirth / Ascend / Evolve Statistics",
-                    "Minigame Statistics",
+                    "Live Counters", "Live Cash", "Upgrade Statistics", "Fruit / Drop Statistics",
+                    "Rebirth / Ascend / Evolve Statistics", "Minigame Statistics",
                 } },
                 { Category = "COMPATIBILITY", Items = {
-                    "PC Support",
+                    "PC Support", "Mobile Support", "Standalone UI", "RightControl Menu Toggle",
+                } },
+            },
+        },
+
+
+        {
+            Id = "MathTowerRace",
+            Title = "MATH TOWER RACE",
+            Category = "OBI",
+            Description = "NEXUS Math Tower Race profile with automatic question solving, randomized timing, anti-AFK, scan testing and mobile / PC controls.",
+            AssetId = "121891713872276",
+            PlaceId = "121891713872276",
+            ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-Math-Tower-Race.lua",
+            Accent = Color3.fromRGB(255, 59, 107),
+            Accent2 = Color3.fromRGB(113, 76, 255),
+            Features = {
+                { Category = "AUTO SOLVE", Items = {
+                    "Auto Solve",
+                    "Automatic Question Detection",
+                    "Expression Extraction",
+                    "Numeric Answer Matching",
+                    "Answer Button Activation",
+                    "Smart Nearby Answer Search",
+                    "Duplicate Question Protection",
+                    "Solver State Tracking",
+                } },
+                { Category = "MATH ENGINE", Items = {
+                    "Expression Parser",
+                    "Addition",
+                    "Subtraction",
+                    "Multiplication",
+                    "Division",
+                    "Modulo",
+                    "Power",
+                    "Parentheses",
+                    "Unary + / -",
+                    "Decimal Numbers",
+                    "Math Result Normalization",
+                } },
+                { Category = "TIMING", Items = {
+                    "Randomizer",
+                    "Min Delay",
+                    "Max Delay",
+                    "Randomized Click Delay",
+                    "Scan Interval",
+                    "Cooldown Protection",
+                } },
+                { Category = "ANTI AFK / TOOLS", Items = {
+                    "Anti AFK",
+                    "Manual Scan / Test",
+                    "Debug Mode",
+                    "Live Solved Counter",
+                    "Live Scan Counter",
+                    "Runtime Status",
+                } },
+                { Category = "INTERFACE", Items = {
+                    "NEXUS MTR UI",
                     "Mobile Support",
-                    "Standalone UI",
-                    "RightControl Menu Toggle",
+                    "PC Support",
+                    "Responsive UIScale",
+                    "Compact Square Layout",
+                    "Draggable Menu",
+                    "Circular NEXUS Launcher",
+                    "Open / Close Menu",
+                    "Settings Page",
+                    "Info Page",
+                    "Animated 3D Background",
+                    "Toast / Status Feedback",
+                } },
+            },
+        },
+        {
+            Id = "TowerOfHell",
+            Title = "TOWER OF HELL",
+            Category = "OBI",
+            Description = "Tower of Hell profile with movement, jump, teleport, server, configuration and profile modules.",
+            AssetId = "127599163236219",
+            ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/Nexus-Tower-of-Hell.lua",
+            Accent = Color3.fromRGB(255, 43, 139),
+            Accent2 = Color3.fromRGB(132, 79, 255),
+            Features = {
+                { Category = "MOVEMENT", Items = {
+                    "FLY",
+                    "Fly Speed",
+                    "Camera-relative 3D movement",
+                } },
+                { Category = "JUMP", Items = {
+                    "INFINITE JUMP",
+                    "BIG JUMP",
+                    "Jump Power",
+                } },
+                { Category = "PLAYER TELEPORT", Items = {
+                    "Player List",
+                    "Select Player",
+                    "Teleport To Selected Player",
+                    "Live Player List Refresh",
+                } },
+                { Category = "SERVER", Items = {
+                    "Job ID",
+                    "Rejoin Current Server",
+                    "Server Link",
+                    "Copy Server Link",
+                } },
+                { Category = "CONFIGURATION", Items = {
+                    "Save Configuration",
+                    "Load Configuration",
+                    "Reset Configuration",
+                } },
+                { Category = "STATUS", Items = {
+                    "Live FPS",
+                    "Online / Uptime",
+                    "Fly Speed Status",
+                    "Server / Session Information",
+                } },
+                { Category = "PROFILE", Items = {
+                    "Username",
+                    "Display Name",
+                    "User ID",
+                    "Account Age",
+                    "Membership",
+                    "Team",
+                    "Character Status",
                 } },
             },
         },
@@ -597,15 +697,11 @@ local COLORS = {
 --=======================================================
 
 local function tween(instance, properties, duration, style, direction)
-    return TweenService:Create(
-        instance,
-        TweenInfo.new(
-            duration or 0.2,
-            style or Enum.EasingStyle.Quad,
-            direction or Enum.EasingDirection.Out
-        ),
-        properties
-    )
+    return TweenService:Create(instance, TweenInfo.new(
+        duration or 0.2,
+        style or Enum.EasingStyle.Quad,
+        direction or Enum.EasingDirection.Out
+    ), properties)
 end
 
 local function round(parent, radius)
@@ -665,22 +761,26 @@ local function setImage(imageLabel, assetId)
 
             local loaded = false
             pcall(function()
-                ContentProvider:PreloadAsync({imageLabel})
+                ContentProvider:PreloadAsync({ imageLabel })
                 loaded = imageLabel.IsLoaded == true
             end)
 
             if loaded then
+                imageLabel:SetAttribute("NexusImageLoaded", true)
                 return
             end
 
-            local deadline = os.clock() + 1.6
+            local deadline = os.clock() + 1.8
             while os.clock() < deadline do
                 if imageLabel.IsLoaded then
+                    imageLabel:SetAttribute("NexusImageLoaded", true)
                     return
                 end
                 task.wait(0.05)
             end
         end
+
+        imageLabel:SetAttribute("NexusImageFailed", true)
     end)
 end
 
@@ -740,11 +840,17 @@ Main.ClipsDescendants = true
 Main.Active = true
 Main.Parent = ScreenGui
 round(Main, 12)
-stroke(Main, COLORS.Border, 1, 0)
 
 local MainScale = Instance.new("UIScale")
 MainScale.Scale = 1
 MainScale.Parent = Main
+stroke(Main, COLORS.Border, 1)
+
+local MainGlow = Instance.new("UIStroke")
+MainGlow.Color = Color3.fromRGB(0, 128, 255)
+MainGlow.Thickness = 2
+MainGlow.Transparency = 0.72
+MainGlow.Parent = Main
 
 local MainGradient = Instance.new("UIGradient")
 MainGradient.Color = ColorSequence.new({
@@ -754,6 +860,41 @@ MainGradient.Color = ColorSequence.new({
 })
 MainGradient.Rotation = 90
 MainGradient.Parent = Main
+
+--=======================================================
+-- ELECTRIC BLUE LIGHTNING DECOR
+--=======================================================
+
+local function addNeonLightning(parent, xScale, yOffset, size, rotation, zIndex)
+    local holder = Instance.new("Frame")
+    holder.Name = "NeonLightning"
+    holder.AnchorPoint = Vector2.new(0.5, 0)
+    holder.Position = UDim2.new(xScale, 0, 0, yOffset)
+    holder.Size = UDim2.fromOffset(size, math.floor(size * 1.20))
+    holder.BackgroundTransparency = 1
+    holder.BorderSizePixel = 0
+    holder.Active = false
+    holder.ZIndex = zIndex or 6
+    holder.Rotation = rotation or 0
+    holder.Parent = parent
+
+    local glow = createText(holder, "ϟ", math.floor(size * 1.05), Color3.fromRGB(0, 105, 255), Enum.Font.GothamBlack, Enum.TextXAlignment.Center)
+    glow.Size = UDim2.fromScale(1, 1)
+    glow.Position = UDim2.fromScale(0, 0)
+    glow.TextStrokeColor3 = Color3.fromRGB(0, 60, 255)
+    glow.TextStrokeTransparency = 0.45
+    glow.TextTransparency = 0.18
+    glow.ZIndex = (zIndex or 6)
+
+    local core = createText(holder, "ϟ", math.floor(size * 0.88), Color3.fromRGB(35, 195, 255), Enum.Font.GothamBlack, Enum.TextXAlignment.Center)
+    core.Size = UDim2.fromScale(1, 1)
+    core.Position = UDim2.fromOffset(0, -1)
+    core.TextStrokeColor3 = Color3.fromRGB(160, 235, 255)
+    core.TextStrokeTransparency = 0.30
+    core.ZIndex = (zIndex or 6) + 1
+
+    return holder
+end
 
 --=======================================================
 -- HEADER
@@ -772,6 +913,7 @@ HeaderGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0.55, Color3.fromRGB(3, 9, 20)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 19, 39)),
 })
+HeaderGradient.Rotation = 0
 HeaderGradient.Parent = Header
 
 local HeaderElectricLine = Instance.new("Frame")
@@ -891,9 +1033,10 @@ local categoryState = "ALL"
 local SidebarButtons = {}
 
 --=======================================================
--- SIDEBAR SCROLL
+-- SIDEBAR CATEGORY SCROLL / SLIDER
 --=======================================================
-
+-- Keeps the existing category buttons exactly the same visually,
+-- while adding a dedicated vertical scroll area in the library section.
 local SidebarCategoryScroll = Instance.new("ScrollingFrame")
 SidebarCategoryScroll.Name = "SidebarCategoryScroll"
 SidebarCategoryScroll.Position = UDim2.new(0, 12, 0, 52)
@@ -922,7 +1065,7 @@ round(SidebarScrollTrack, 4)
 local SidebarScrollThumb = Instance.new("TextButton")
 SidebarScrollThumb.Name = "SidebarScrollThumb"
 SidebarScrollThumb.Position = UDim2.new(0, 0, 0, 0)
-SidebarScrollThumb.Size = UDim2.new(1, 0, 0, 60)
+SidebarScrollThumb.Size = UDim2.new(1, 0, 0, 72)
 SidebarScrollThumb.BackgroundColor3 = Color3.fromRGB(25, 170, 255)
 SidebarScrollThumb.BackgroundTransparency = 0.12
 SidebarScrollThumb.BorderSizePixel = 0
@@ -936,6 +1079,7 @@ round(SidebarScrollThumb, 4)
 local function updateSidebarSlider()
     local windowHeight = math.max(SidebarCategoryScroll.AbsoluteWindowSize.Y, 1)
     local canvasHeight = math.max(SidebarCategoryScroll.AbsoluteCanvasSize.Y, windowHeight)
+
     local trackHeight = math.max(SidebarScrollTrack.AbsoluteSize.Y, 1)
     local maxScroll = math.max(canvasHeight - windowHeight, 0)
 
@@ -943,13 +1087,20 @@ local function updateSidebarSlider()
     if maxScroll <= 0 then
         thumbHeight = trackHeight
     else
-        thumbHeight = math.clamp(math.floor(trackHeight * (windowHeight / canvasHeight)), 42, trackHeight)
+        thumbHeight = math.clamp(
+            math.floor(trackHeight * (windowHeight / canvasHeight)),
+            42,
+            trackHeight
+        )
     end
 
     SidebarScrollThumb.Size = UDim2.new(1, 0, 0, thumbHeight)
 
     local travel = math.max(trackHeight - thumbHeight, 0)
-    local alpha = maxScroll > 0 and math.clamp(SidebarCategoryScroll.CanvasPosition.Y / maxScroll, 0, 1) or 0
+    local alpha = maxScroll > 0
+        and math.clamp(SidebarCategoryScroll.CanvasPosition.Y / maxScroll, 0, 1)
+        or 0
+
     SidebarScrollThumb.Position = UDim2.new(0, 0, 0, math.floor(travel * alpha + 0.5))
 end
 
@@ -964,13 +1115,22 @@ SidebarScrollThumb.InputBegan:Connect(function(input)
         sidebarSliderDragging = true
         sidebarSliderDragStartY = input.Position.Y
         sidebarSliderStartY = SidebarScrollThumb.Position.Y.Offset
+
+        tween(SidebarScrollThumb, {
+            BackgroundColor3 = Color3.fromRGB(55, 195, 255)
+        }, 0.1):Play()
     end
 end)
 
 SidebarScrollThumb.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
+
         sidebarSliderDragging = false
+
+        tween(SidebarScrollThumb, {
+            BackgroundColor3 = Color3.fromRGB(25, 170, 255)
+        }, 0.1):Play()
     end
 end)
 
@@ -988,10 +1148,7 @@ UserInputService.InputChanged:Connect(function(input)
     local thumbHeight = SidebarScrollThumb.AbsoluteSize.Y
     local travel = math.max(trackHeight - thumbHeight, 0)
 
-    local canvasHeight = math.max(
-        SidebarCategoryScroll.AbsoluteCanvasSize.Y,
-        SidebarCategoryScroll.AbsoluteWindowSize.Y
-    )
+    local canvasHeight = math.max(SidebarCategoryScroll.AbsoluteCanvasSize.Y, SidebarCategoryScroll.AbsoluteWindowSize.Y)
     local windowHeight = math.max(SidebarCategoryScroll.AbsoluteWindowSize.Y, 1)
     local maxScroll = math.max(canvasHeight - windowHeight, 0)
 
@@ -1003,7 +1160,12 @@ UserInputService.InputChanged:Connect(function(input)
     local newThumbY = math.clamp(sidebarSliderStartY + deltaY, 0, travel)
     local alpha = newThumbY / travel
 
-    SidebarCategoryScroll.CanvasPosition = Vector2.new(0, alpha * maxScroll)
+    SidebarCategoryScroll.CanvasPosition = Vector2.new(
+        0,
+        alpha * maxScroll
+    )
+
+    updateSidebarSlider()
 end)
 
 SidebarCategoryScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(updateSidebarSlider)
@@ -1012,16 +1174,16 @@ SidebarCategoryScroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(upd
 SidebarScrollTrack:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSidebarSlider)
 
 local function createSidebarButton(name, text, y)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Position = UDim2.new(0, 0, 0, y)
-    button.Size = UDim2.new(1, 0, 0, 42)
-    button.BackgroundColor3 = Color3.fromRGB(5, 18, 35)
-    button.Text = ""
-    button.AutoButtonColor = false
-    button.ZIndex = 4
-    button.Parent = SidebarCategoryScroll
-    round(button, 10)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Position = UDim2.new(0, 0, 0, y)
+    Button.Size = UDim2.new(1, 0, 0, 42)
+    Button.BackgroundColor3 = Color3.fromRGB(5, 18, 35)
+    Button.Text = ""
+    Button.AutoButtonColor = false
+    Button.ZIndex = 4
+    Button.Parent = SidebarCategoryScroll
+    round(Button, 10)
 
     local indicator = Instance.new("Frame")
     indicator.Size = UDim2.fromOffset(3, 18)
@@ -1030,21 +1192,16 @@ local function createSidebarButton(name, text, y)
     indicator.BorderSizePixel = 0
     indicator.Visible = false
     indicator.ZIndex = 5
-    indicator.Parent = button
+    indicator.Parent = Button
     round(indicator, 3)
 
-    local label = createText(button, text, 12, COLORS.Muted, Enum.Font.GothamBold)
+    local label = createText(Button, text, 13, COLORS.Muted, Enum.Font.GothamBold)
     label.Position = UDim2.new(0, 17, 0, 0)
     label.Size = UDim2.new(1, -25, 1, 0)
     label.ZIndex = 5
 
-    SidebarButtons[name] = {
-        Button = button,
-        Indicator = indicator,
-        Label = label,
-    }
-
-    return button
+    SidebarButtons[name] = { Button = Button, Indicator = indicator, Label = label }
+    return Button
 end
 
 local AllButton = createSidebarButton("All", "ALL", 8)
@@ -1052,6 +1209,11 @@ local ShuterButton = createSidebarButton("Shuter", "SHUTER", 56)
 local ObiButton = createSidebarButton("Obi", "OBI", 104)
 local SurvivalButton = createSidebarButton("Survival", "SURVIVAL", 152)
 local SimulatorButton = createSidebarButton("Simulator", "SIMULATOR", 200)
+
+task.defer(function()
+    task.wait()
+    updateSidebarSlider()
+end)
 
 local SidebarScrollPadding = Instance.new("UIPadding")
 SidebarScrollPadding.PaddingBottom = UDim.new(0, 12)
@@ -1086,42 +1248,67 @@ Search.ZIndex = 5
 Search.Parent = SearchBox
 
 --=======================================================
--- CONTENT AREAS
+-- TELEGRAM COPY NOTIFICATION
 --=======================================================
+local function showTelegramNotice(label)
+    local Notice = Instance.new("Frame")
+    Notice.Name = "TelegramCopyNotice"
+    Notice.AnchorPoint = Vector2.new(1, 0)
+    Notice.Position = UDim2.new(1, 340, 0, 18)
+    Notice.Size = UDim2.fromOffset(326, 78)
+    Notice.BackgroundColor3 = Color3.fromRGB(20, 23, 34)
+    Notice.BackgroundTransparency = 1
+    Notice.BorderSizePixel = 0
+    Notice.ZIndex = 200
+    Notice.Parent = Main
+    round(Notice, 13)
+    local NoticeStroke = stroke(Notice, Color3.fromRGB(180, 90, 255), 1.6, 1)
 
-local CardsArea = Instance.new("Frame")
-CardsArea.Position = UDim2.new(0, 210, 0, 0)
-CardsArea.Size = UDim2.new(1, -210, 1, 0)
-CardsArea.BackgroundTransparency = 1
-CardsArea.ZIndex = 2
-CardsArea.Parent = Body
+    local Accent = Instance.new("Frame")
+    Accent.Size = UDim2.new(0, 4, 1, 0)
+    Accent.BackgroundColor3 = Color3.fromRGB(180, 90, 255)
+    Accent.BackgroundTransparency = 1
+    Accent.BorderSizePixel = 0
+    Accent.ZIndex = 201
+    Accent.Parent = Notice
+    round(Accent, 13)
 
-local CardsScroll = Instance.new("ScrollingFrame")
-CardsScroll.Position = UDim2.new(0, 17, 0, 17)
-CardsScroll.Size = UDim2.new(1, -34, 1, -34)
-CardsScroll.BackgroundTransparency = 1
-CardsScroll.BorderSizePixel = 0
-CardsScroll.ScrollBarThickness = 4
-CardsScroll.ScrollBarImageColor3 = COLORS.Border
-CardsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-CardsScroll.ZIndex = 4
-CardsScroll.Parent = CardsArea
+    local Title = createText(Notice, "TELEGRAM COPIED ✓", 11, Color3.fromRGB(225, 190, 255), Enum.Font.GothamBold)
+    Title.Position = UDim2.new(0, 17, 0, 10)
+    Title.Size = UDim2.new(1, -30, 0, 18)
+    Title.TextTransparency = 1
+    Title.ZIndex = 202
 
-local CardsPadding = Instance.new("UIPadding")
-CardsPadding.PaddingBottom = UDim.new(0, 12)
-CardsPadding.Parent = CardsScroll
+    local BodyText = createText(Notice,
+        "Telegram " .. label .. " copied.\nPaste it into your browser to open the profile.",
+        10, COLORS.White, Enum.Font.GothamMedium)
+    BodyText.Position = UDim2.new(0, 17, 0, 31)
+    BodyText.Size = UDim2.new(1, -30, 0, 38)
+    BodyText.TextWrapped = true
+    BodyText.TextYAlignment = Enum.TextYAlignment.Top
+    BodyText.TextTransparency = 1
+    BodyText.ZIndex = 202
 
-local Grid = Instance.new("UIGridLayout")
-Grid.CellPadding = UDim2.fromOffset(12, 14)
-Grid.CellSize = UDim2.fromOffset(250, 320)
-Grid.FillDirection = Enum.FillDirection.Horizontal
-Grid.FillDirectionMaxCells = 3
-Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Grid.SortOrder = Enum.SortOrder.LayoutOrder
-Grid.Parent = CardsScroll
+    tween(Notice, {Position = UDim2.new(1, -18, 0, 18), BackgroundTransparency = 0.04}, 0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+    tween(NoticeStroke, {Transparency = 0.08}, 0.35):Play()
+    tween(Accent, {BackgroundTransparency = 0}, 0.25):Play()
+    tween(Title, {TextTransparency = 0}, 0.28):Play()
+    tween(BodyText, {TextTransparency = 0}, 0.32):Play()
+
+    task.delay(4.5, function()
+        if not Notice or not Notice.Parent then return end
+        tween(Notice, {Position = UDim2.new(1, 340, 0, 18), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In):Play()
+        tween(NoticeStroke, {Transparency = 1}, 0.25):Play()
+        tween(Accent, {BackgroundTransparency = 1}, 0.2):Play()
+        tween(Title, {TextTransparency = 1}, 0.2):Play()
+        tween(BodyText, {TextTransparency = 1}, 0.2):Play()
+        task.wait(0.35)
+        if Notice then Notice:Destroy() end
+    end)
+end
 
 --=======================================================
--- CREDITS
+-- CREDITS AREA
 --=======================================================
 
 local CreditsArea = Instance.new("Frame")
@@ -1157,6 +1344,63 @@ CreditsSubtitle.Position = UDim2.new(0, 9, 0, 40)
 CreditsSubtitle.Size = UDim2.new(1, -18, 0, 18)
 CreditsSubtitle.ZIndex = 22
 
+local function showChannelNotice()
+    local Notice = Instance.new("Frame")
+    Notice.Name = "NexusChannelCopyNotice"
+    Notice.AnchorPoint = Vector2.new(1, 0)
+    Notice.Position = UDim2.new(1, 340, 0, 18)
+    Notice.Size = UDim2.fromOffset(342, 88)
+    Notice.BackgroundColor3 = Color3.fromRGB(20, 23, 34)
+    Notice.BackgroundTransparency = 1
+    Notice.BorderSizePixel = 0
+    Notice.ZIndex = 300
+    Notice.Parent = Main
+    round(Notice, 14)
+    local NoticeStroke = stroke(Notice, Color3.fromRGB(35, 160, 255), 1.8, 1)
+
+    local Accent = Instance.new("Frame")
+    Accent.Size = UDim2.new(0, 4, 1, 0)
+    Accent.BackgroundColor3 = Color3.fromRGB(35, 160, 255)
+    Accent.BackgroundTransparency = 1
+    Accent.BorderSizePixel = 0
+    Accent.ZIndex = 301
+    Accent.Parent = Notice
+    round(Accent, 14)
+
+    local Title = createText(Notice, "TELEGRAM COPIED ✓", 12, Color3.fromRGB(125, 195, 255), Enum.Font.GothamBold)
+    Title.Position = UDim2.new(0, 18, 0, 9)
+    Title.Size = UDim2.new(1, -30, 0, 20)
+    Title.TextTransparency = 1
+    Title.ZIndex = 302
+
+    local BodyText = createText(Notice,
+        "Telegram copied.\nPaste it into your browser, then press Search.",
+        10, COLORS.White, Enum.Font.GothamMedium)
+    BodyText.Position = UDim2.new(0, 18, 0, 33)
+    BodyText.Size = UDim2.new(1, -30, 0, 42)
+    BodyText.TextWrapped = true
+    BodyText.TextYAlignment = Enum.TextYAlignment.Top
+    BodyText.TextTransparency = 1
+    BodyText.ZIndex = 302
+
+    tween(Notice, {Position = UDim2.new(1, -18, 0, 18), BackgroundTransparency = 0.04}, 0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+    tween(NoticeStroke, {Transparency = 0.08}, 0.35):Play()
+    tween(Accent, {BackgroundTransparency = 0}, 0.25):Play()
+    tween(Title, {TextTransparency = 0}, 0.28):Play()
+    tween(BodyText, {TextTransparency = 0}, 0.32):Play()
+
+    task.delay(4.5, function()
+        if not Notice or not Notice.Parent then return end
+        tween(Notice, {Position = UDim2.new(1, 340, 0, 18), BackgroundTransparency = 1}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In):Play()
+        tween(NoticeStroke, {Transparency = 1}, 0.25):Play()
+        tween(Accent, {BackgroundTransparency = 1}, 0.2):Play()
+        tween(Title, {TextTransparency = 1}, 0.2):Play()
+        tween(BodyText, {TextTransparency = 1}, 0.2):Play()
+        task.wait(0.35)
+        if Notice then Notice:Destroy() end
+    end)
+end
+
 local CreditsList = Instance.new("Frame")
 CreditsList.Position = UDim2.new(0, 8, 0, 70)
 CreditsList.Size = UDim2.new(1, -16, 0, 0)
@@ -1177,11 +1421,9 @@ local function getRobloxName(userId)
     local ok, name = pcall(function()
         return Players:GetNameFromUserIdAsync(userId)
     end)
-
     if ok and name then
         return name
     end
-
     return "Roblox User " .. tostring(userId)
 end
 
@@ -1193,11 +1435,9 @@ local function getRobloxAvatar(userId)
             Enum.ThumbnailSize.Size180x180
         )
     end)
-
     if ok then
         return image
     end
-
     return ""
 end
 
@@ -1210,7 +1450,7 @@ local function createCreditCard(data, order)
     Card.ZIndex = 23
     Card.Parent = CreditsList
     round(Card, 13)
-    stroke(Card, data.Color, 1.5, 0.25)
+    local CardStroke = stroke(Card, data.Color, 1.5, 0.25)
 
     local AvatarFrame = Instance.new("Frame")
     AvatarFrame.Position = UDim2.new(0, 14, 0, 14)
@@ -1240,6 +1480,14 @@ local function createCreditCard(data, order)
     Role.Position = UDim2.new(0, 112, 0, 39)
     Role.Size = UDim2.new(0, 100, 0, 18)
     Role.ZIndex = 25
+    Role.TextStrokeColor3 = data.Color
+    Role.TextStrokeTransparency = 0.45
+
+    local RoleGlow = Instance.new("UIStroke")
+    RoleGlow.Color = data.Color
+    RoleGlow.Thickness = 1.5
+    RoleGlow.Transparency = 0.45
+    RoleGlow.Parent = Role
 
     local Country = createText(Card, data.Country, 10, COLORS.Muted, Enum.Font.GothamMedium)
     Country.Position = UDim2.new(0, 112, 0, 61)
@@ -1266,25 +1514,24 @@ local function createCreditCard(data, order)
     TgButton.ZIndex = 26
     TgButton.Parent = Card
     round(TgButton, 9)
-
     local TgStroke = stroke(TgButton, data.Color, 1, 0.35)
 
     TgButton.MouseEnter:Connect(function()
-        tween(TgButton, {BackgroundColor3 = data.Color}, 0.12):Play()
-        tween(TgStroke, {Transparency = 0.05}, 0.12):Play()
+        tween(TgButton, { BackgroundColor3 = data.Color }, 0.12):Play()
+        tween(TgStroke, { Transparency = 0.05 }, 0.12):Play()
     end)
-
     TgButton.MouseLeave:Connect(function()
-        tween(TgButton, {BackgroundColor3 = Color3.fromRGB(25, 29, 42)}, 0.12):Play()
-        tween(TgStroke, {Transparency = 0.35}, 0.12):Play()
+        tween(TgButton, { BackgroundColor3 = Color3.fromRGB(25, 29, 42) }, 0.12):Play()
+        tween(TgStroke, { Transparency = 0.35 }, 0.12):Play()
     end)
-
     TgButton.Activated:Connect(function()
+        local url = tostring(data.Telegram)
         if typeof(setclipboard) == "function" then
             pcall(function()
-                setclipboard(tostring(data.Telegram))
+                setclipboard(url)
             end)
         end
+        showTelegramNotice("@" .. tostring(data.Telegram):gsub("https://t%.me/", ""))
     end)
 end
 
@@ -1306,6 +1553,9 @@ createCreditCard({
     Color = Color3.fromRGB(115, 145, 255),
 }, 2)
 
+--=======================================================
+-- OFFICIAL CHANNEL
+--=======================================================
 local OfficialChannelLabel = createText(CreditsList, "OFFICIAL CHANNEL", 10, COLORS.Muted, Enum.Font.GothamBold)
 OfficialChannelLabel.LayoutOrder = 3
 OfficialChannelLabel.Size = UDim2.new(1, 0, 0, 18)
@@ -1371,15 +1621,58 @@ ProjectButton.AutoButtonColor = false
 ProjectButton.ZIndex = 26
 ProjectButton.Parent = ProjectTelegramCard
 round(ProjectButton, 9)
-stroke(ProjectButton, Color3.fromRGB(75, 165, 255), 1.2, 0.12)
+local ProjectButtonStroke = stroke(ProjectButton, Color3.fromRGB(75, 165, 255), 1.2, 0.12)
 
-ProjectButton.Activated:Connect(function()
-    if typeof(setclipboard) == "function" then
-        pcall(function()
-            setclipboard("https://t.me/Nexus_injector")
-        end)
-    end
+ProjectButton.MouseEnter:Connect(function()
+    tween(ProjectButton, {BackgroundColor3 = Color3.fromRGB(45, 135, 225)}, 0.12):Play()
+    tween(ProjectButtonStroke, {Transparency = 0}, 0.12):Play()
 end)
+ProjectButton.MouseLeave:Connect(function()
+    tween(ProjectButton, {BackgroundColor3 = Color3.fromRGB(30, 105, 190)}, 0.12):Play()
+    tween(ProjectButtonStroke, {Transparency = 0.12}, 0.12):Play()
+end)
+ProjectButton.Activated:Connect(function()
+    local url = "https://t.me/Nexus_injector"
+    if typeof(setclipboard) == "function" then
+        pcall(function() setclipboard(url) end)
+    end
+    showChannelNotice()
+end)
+
+--=======================================================
+-- CARD AREA
+--=======================================================
+
+local CardsArea = Instance.new("Frame")
+CardsArea.Position = UDim2.new(0, 210, 0, 0)
+CardsArea.Size = UDim2.new(1, -210, 1, 0)
+CardsArea.BackgroundTransparency = 1
+CardsArea.ZIndex = 2
+CardsArea.Parent = Body
+
+local CardsScroll = Instance.new("ScrollingFrame")
+CardsScroll.Position = UDim2.new(0, 17, 0, 17)
+CardsScroll.Size = UDim2.new(1, -34, 1, -34)
+CardsScroll.BackgroundTransparency = 1
+CardsScroll.BorderSizePixel = 0
+CardsScroll.ScrollBarThickness = 4
+CardsScroll.ScrollBarImageColor3 = COLORS.Border
+CardsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+CardsScroll.ZIndex = 4
+CardsScroll.Parent = CardsArea
+
+local CardsPadding = Instance.new("UIPadding")
+CardsPadding.PaddingBottom = UDim.new(0, 12)
+CardsPadding.Parent = CardsScroll
+
+local Grid = Instance.new("UIGridLayout")
+Grid.CellPadding = UDim2.fromOffset(12, 14)
+Grid.CellSize = UDim2.new(0.31, 0, 0, 320)
+Grid.FillDirection = Enum.FillDirection.Horizontal
+Grid.FillDirectionMaxCells = 3
+Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Grid.SortOrder = Enum.SortOrder.LayoutOrder
+Grid.Parent = CardsScroll
 
 --=======================================================
 -- FOOTER
@@ -1404,11 +1697,12 @@ round(Avatar, 10)
 stroke(Avatar, Color3.fromRGB(120, 125, 145), 1.5, 0)
 
 pcall(function()
-    Avatar.Image = Players:GetUserThumbnailAsync(
+    local image = Players:GetUserThumbnailAsync(
         LocalPlayer.UserId,
         Enum.ThumbnailType.HeadShot,
         Enum.ThumbnailSize.Size100x100
     )
+    Avatar.Image = image
 end)
 
 local UserName = createText(Footer, LocalPlayer.DisplayName or LocalPlayer.Name, 13, COLORS.White, Enum.Font.GothamBold)
@@ -1421,14 +1715,29 @@ local CODER_USER_ID = 11683846917
 local isNexusOwner = LocalPlayer.UserId == OWNER_USER_ID
 local isNexusCoder = LocalPlayer.UserId == CODER_USER_ID
 local NexusRole = isNexusOwner and "OWNER" or (isNexusCoder and "CODER" or "NEXUS USER")
-local NexusRoleColor =
-    isNexusOwner and Color3.fromRGB(255, 185, 60)
-    or (isNexusCoder and Color3.fromRGB(115, 145, 255) or COLORS.Muted)
+local NexusRoleColor = isNexusOwner and Color3.fromRGB(255, 185, 60) or (isNexusCoder and Color3.fromRGB(115, 145, 255) or COLORS.Muted)
 
-local UserTag = createText(Footer, NexusRole, 9, NexusRoleColor, Enum.Font.GothamBold)
+local UserTag = createText(
+    Footer,
+    NexusRole,
+    9,
+    NexusRoleColor,
+    Enum.Font.GothamBold
+)
 UserTag.Position = UDim2.new(0, 66, 0, 27)
 UserTag.Size = UDim2.new(0, 130, 0, 14)
 UserTag.ZIndex = 8
+
+if isNexusOwner or isNexusCoder then
+    UserTag.TextStrokeColor3 = NexusRoleColor
+    UserTag.TextStrokeTransparency = 0.3
+
+    local RoleGlow = Instance.new("UIStroke")
+    RoleGlow.Color = NexusRoleColor
+    RoleGlow.Thickness = 2
+    RoleGlow.Transparency = 0.45
+    RoleGlow.Parent = UserTag
+end
 
 local UserIdLabel = createText(Footer, "ID: " .. tostring(LocalPlayer.UserId), 8, Color3.fromRGB(110, 114, 135), Enum.Font.GothamMedium)
 UserIdLabel.Position = UDim2.new(0, 66, 0, 42)
@@ -1469,6 +1778,29 @@ FooterCredits.ZIndex = 9
 FooterCredits.Parent = Footer
 round(FooterCredits, 9)
 local FooterCreditsStroke = stroke(FooterCredits, Color3.fromRGB(70, 105, 255), 1.4, 0.08)
+
+--=======================================================
+-- BLUE NEON LIGHTNING DECOR
+--=======================================================
+addNeonLightning(Header, 0.42, 10, 38, -12, 8)
+addNeonLightning(Header, 0.60, 7, 34, 8, 8)
+addNeonLightning(Header, 0.74, 11, 36, -10, 8)
+
+addNeonLightning(Footer, 0.25, 7, 31, -12, 7)
+addNeonLightning(Footer, 0.40, 8, 28, 10, 7)
+addNeonLightning(Footer, 0.76, 8, 30, -12, 7)
+
+FooterCredits.MouseEnter:Connect(function()
+    tween(FooterCredits, { BackgroundColor3 = Color3.fromRGB(48, 52, 145) }, 0.12):Play()
+    tween(FooterCreditsStroke, { Transparency = 0 }, 0.12):Play()
+    tween(FooterCredits, { TextColor3 = COLORS.White }, 0.12):Play()
+end)
+
+FooterCredits.MouseLeave:Connect(function()
+    tween(FooterCredits, { BackgroundColor3 = Color3.fromRGB(67, 31, 95) }, 0.12):Play()
+    tween(FooterCreditsStroke, { Transparency = 0.08 }, 0.12):Play()
+    tween(FooterCredits, { TextColor3 = Color3.fromRGB(225, 190, 255) }, 0.12):Play()
+end)
 
 --=======================================================
 -- DETAILS PAGE
@@ -1604,11 +1936,9 @@ NotificationText.Position = UDim2.new(0, 10, 0, 5)
 NotificationText.ZIndex = 501
 
 local notificationToken = 0
-
 local function notify(message)
     notificationToken += 1
     local token = notificationToken
-
     NotificationText.Text = message
     Notification.Visible = true
     Notification.Position = UDim2.new(0.5, 0, 1, 30)
@@ -1621,14 +1951,11 @@ local function notify(message)
         if token ~= notificationToken then
             return
         end
-
         local out = tween(Notification, {
             Position = UDim2.new(0.5, 0, 1, 30),
         }, 0.22)
-
         out:Play()
         out.Completed:Wait()
-
         if token == notificationToken then
             Notification.Visible = false
         end
@@ -1636,72 +1963,10 @@ local function notify(message)
 end
 
 --=======================================================
--- SCRIPT EXECUTION
+-- LAUNCH / 3D CLOSE ANIMATION
 --=======================================================
 
-local CurrentDetails = nil
-local scriptBusy = false
 local launchInProgress = false
-
-local function executeSelected(cfg)
-    if not cfg then
-        notify("SELECT A GAME FIRST")
-        return
-    end
-
-    if scriptBusy then
-        notify("WAIT • SCRIPT IS LOADING")
-        return
-    end
-
-    if type(cfg.ScriptUrl) ~= "string" or cfg.ScriptUrl == "" then
-        notify(cfg.Title .. " • SCRIPT URL MISSING")
-        return
-    end
-
-    if type(loadstring) ~= "function" then
-        notify("LOADSTRING IS NOT AVAILABLE")
-        return
-    end
-
-    scriptBusy = true
-    notify(cfg.Title .. " • LOADING")
-
-    task.spawn(function()
-        local okHttp, source = pcall(function()
-            return game:HttpGet(cfg.ScriptUrl)
-        end)
-
-        if not okHttp or type(source) ~= "string" or source == "" then
-            warn("[Nexus] " .. cfg.Id .. " HttpGet error:", source)
-            notify(cfg.Title .. " • DOWNLOAD ERROR")
-            scriptBusy = false
-            return
-        end
-
-        local okCompile, chunk = pcall(function()
-            return loadstring(source)
-        end)
-
-        if not okCompile or type(chunk) ~= "function" then
-            warn("[Nexus] " .. cfg.Id .. " compile error:", chunk)
-            notify(cfg.Title .. " • COMPILE ERROR")
-            scriptBusy = false
-            return
-        end
-
-        local okRun, runErr = pcall(chunk)
-
-        if okRun then
-            notify(cfg.Title .. " • STARTED")
-        else
-            warn("[Nexus] " .. cfg.Id .. " runtime error:", runErr)
-            notify(cfg.Title .. " • RUNTIME ERROR")
-        end
-
-        scriptBusy = false
-    end)
-end
 
 local function closeHubForLaunch()
     if launchInProgress or not ScreenGui.Parent then
@@ -1709,11 +1974,27 @@ local function closeHubForLaunch()
     end
 
     launchInProgress = true
+
     Main.Active = false
     Body.Active = false
     DetailsPage.Active = false
 
-    local pulse = tween(Backdrop, {
+    local DepthLayer = Instance.new("Frame")
+    DepthLayer.Name = "LaunchDepth"
+    DepthLayer.Size = UDim2.fromScale(1, 1)
+    DepthLayer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    DepthLayer.BackgroundTransparency = 1
+    DepthLayer.BorderSizePixel = 0
+    DepthLayer.ZIndex = 10000
+    DepthLayer.Parent = ScreenGui
+
+    local depthStroke = Instance.new("UIStroke")
+    depthStroke.Color = Color3.fromRGB(70, 220, 255)
+    depthStroke.Thickness = 2
+    depthStroke.Transparency = 0.75
+    depthStroke.Parent = DepthLayer
+
+    local pulse = tween(DepthLayer, {
         BackgroundTransparency = 0.72,
     }, 0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     pulse:Play()
@@ -1736,19 +2017,113 @@ local function closeHubForLaunch()
 
     local backdropTween = tween(Backdrop, {
         BackgroundTransparency = 1,
-    }, 0.18)
+    }, 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
     closeTween:Play()
     scaleTween:Play()
     backdropTween:Play()
-    closeTween.Completed:Wait()
 
+    closeTween.Completed:Wait()
     return true
+end
+
+local function destroyHubAfterLaunch()
+    pcall(function()
+        ScreenGui:Destroy()
+    end)
+end
+
+--=======================================================
+-- SCRIPT EXECUTION
+--=======================================================
+
+local CurrentDetails = nil
+local scriptBusy = false
+
+local function executeSelected(cfg)
+    if not cfg then
+        if ScreenGui.Parent then
+            notify("SELECT A GAME FIRST")
+        end
+        return
+    end
+
+    if scriptBusy then
+        if ScreenGui.Parent then
+            notify("WAIT • SCRIPT IS LOADING")
+        end
+        return
+    end
+
+    if type(cfg.ScriptUrl) ~= "string" or cfg.ScriptUrl == "" then
+        if ScreenGui.Parent then
+            notify(cfg.Title .. " • SCRIPT URL MISSING")
+        end
+        warn("[Nexus] Missing script URL for " .. tostring(cfg.Id))
+        return
+    end
+
+    if type(loadstring) ~= "function" then
+        if ScreenGui.Parent then
+            notify("LOADSTRING IS NOT AVAILABLE")
+        end
+        warn("[Nexus] loadstring is not available in this environment")
+        return
+    end
+
+    scriptBusy = true
+
+    if ScreenGui.Parent then
+        notify(cfg.Title .. " • LOADING")
+    end
+
+    task.spawn(function()
+        local okHttp, source = pcall(function()
+            return game:HttpGet(cfg.ScriptUrl)
+        end)
+
+        if not okHttp or type(source) ~= "string" or source == "" then
+            warn("[Nexus] " .. cfg.Id .. " HttpGet error:", source)
+            if ScreenGui.Parent then
+                notify(cfg.Title .. " • DOWNLOAD ERROR")
+            end
+            scriptBusy = false
+            return
+        end
+
+        local okCompile, chunk = pcall(function()
+            return loadstring(source)
+        end)
+
+        if not okCompile or type(chunk) ~= "function" then
+            warn("[Nexus] " .. cfg.Id .. " compile error:", chunk)
+            if ScreenGui.Parent then
+                notify(cfg.Title .. " • COMPILE ERROR")
+            end
+            scriptBusy = false
+            return
+        end
+
+        local okRun, runErr = pcall(chunk)
+
+        if okRun then
+            if ScreenGui.Parent then
+                notify(cfg.Title .. " • STARTED")
+            end
+        else
+            warn("[Nexus] " .. cfg.Id .. " runtime error:", runErr)
+            if ScreenGui.Parent then
+                notify(cfg.Title .. " • RUNTIME ERROR")
+            end
+        end
+
+        scriptBusy = false
+    end)
 end
 
 local function launchSelected(cfg)
     if not cfg or launchInProgress then
-        if not cfg then
+        if not cfg and ScreenGui.Parent then
             notify("SELECT A GAME FIRST")
         end
         return
@@ -1763,11 +2138,7 @@ local function launchSelected(cfg)
         end
 
         task.wait(0.08)
-
-        pcall(function()
-            ScreenGui:Destroy()
-        end)
-
+        destroyHubAfterLaunch()
         executeSelected(selected)
     end)
 end
@@ -1809,7 +2180,6 @@ local function createDetailsBanner(cfg)
     local GameDescription = createText(Banner, cfg.Description, 11, Color3.fromRGB(220, 223, 235), Enum.Font.GothamMedium)
     GameDescription.Position = UDim2.new(0, 20, 1, -28)
     GameDescription.Size = UDim2.new(1, -40, 0, 18)
-    GameDescription.TextWrapped = true
     GameDescription.ZIndex = 104
 end
 
@@ -1873,11 +2243,12 @@ local function createFeatureCategory(cfg, categoryData, order)
         Name.ZIndex = 105
         Name.TextWrapped = true
         Name.TextYAlignment = Enum.TextYAlignment.Center
-
-        local featureConstraint = Instance.new("UITextSizeConstraint")
-        featureConstraint.MinTextSize = 7
-        featureConstraint.MaxTextSize = 9
-        featureConstraint.Parent = Name
+        do
+            local featureConstraint = Instance.new("UITextSizeConstraint")
+            featureConstraint.MinTextSize = 7
+            featureConstraint.MaxTextSize = 9
+            featureConstraint.Parent = Name
+        end
     end
 
     local bottomPadding = Instance.new("UIPadding")
@@ -1920,13 +2291,7 @@ local function showDetails(cfg)
     Body.Visible = false
     Footer.Visible = false
     DetailsPage.Position = UDim2.new(0, 24, 0, 0)
-
-    tween(
-        DetailsPage,
-        {Position = UDim2.new(0, 0, 0, 0)},
-        0.20,
-        Enum.EasingStyle.Quint
-    ):Play()
+    tween(DetailsPage, { Position = UDim2.new(0, 0, 0, 0) }, 0.20, Enum.EasingStyle.Quint):Play()
 end
 
 local function hideDetails()
@@ -1934,10 +2299,7 @@ local function hideDetails()
         return
     end
 
-    local tw = tween(DetailsPage, {
-        Position = UDim2.new(0, 24, 0, 0),
-    }, 0.16)
-
+    local tw = tween(DetailsPage, { Position = UDim2.new(0, 24, 0, 0) }, 0.16)
     tw:Play()
     tw.Completed:Wait()
 
@@ -1956,8 +2318,7 @@ local CardObjects = {}
 
 local function cardMatches(cfg)
     local searchText = string.lower(Search.Text or "")
-    local categoryMatch =
-        categoryState == "ALL"
+    local categoryMatch = categoryState == "ALL"
         or string.upper(cfg.Category) == string.upper(categoryState)
 
     if not categoryMatch then
@@ -1980,7 +2341,6 @@ local function cardMatches(cfg)
         if string.find(string.lower(categoryData.Category), searchText, 1, true) then
             return true
         end
-
         for _, item in ipairs(categoryData.Items) do
             if string.find(string.lower(item), searchText, 1, true) then
                 return true
@@ -1993,7 +2353,6 @@ end
 
 local function updateCardVisibility()
     local anyVisible = false
-
     for _, item in ipairs(CardObjects) do
         local visible = cardMatches(item.Config)
         item.Card.Visible = visible
@@ -2015,8 +2374,7 @@ local function createCard(cfg, order)
     Card.ZIndex = 5
     Card.Parent = CardsScroll
     round(Card, 13)
-
-    local CardStroke = stroke(Card, COLORS.Border, 1, 0)
+    local CardStroke = stroke(Card, COLORS.Border, 1)
 
     local Banner = makeImage(Card, cfg.AssetId, {
         Position = UDim2.new(0, 8, 0, 8),
@@ -2048,11 +2406,12 @@ local function createCard(cfg, order)
     GameTitle.TextWrapped = true
     GameTitle.TextYAlignment = Enum.TextYAlignment.Top
     GameTitle.ZIndex = 8
-
-    local titleConstraint = Instance.new("UITextSizeConstraint")
-    titleConstraint.MinTextSize = 10
-    titleConstraint.MaxTextSize = 13
-    titleConstraint.Parent = GameTitle
+    do
+        local titleConstraint = Instance.new("UITextSizeConstraint")
+        titleConstraint.MinTextSize = 10
+        titleConstraint.MaxTextSize = 13
+        titleConstraint.Parent = GameTitle
+    end
 
     local Desc = createText(Card, cfg.Description, 8, COLORS.Muted, Enum.Font.GothamMedium)
     Desc.Position = UDim2.new(0, 10, 0, 196)
@@ -2060,21 +2419,23 @@ local function createCard(cfg, order)
     Desc.TextWrapped = true
     Desc.TextYAlignment = Enum.TextYAlignment.Top
     Desc.ZIndex = 8
-
-    local descConstraint = Instance.new("UITextSizeConstraint")
-    descConstraint.MinTextSize = 7
-    descConstraint.MaxTextSize = 9
-    descConstraint.Parent = Desc
+    do
+        local descConstraint = Instance.new("UITextSizeConstraint")
+        descConstraint.MinTextSize = 7
+        descConstraint.MaxTextSize = 9
+        descConstraint.Parent = Desc
+    end
 
     local CountText = createText(Card, tostring(countFeatures(cfg)) .. " FUNCTIONS", 8, COLORS.DarkText, Enum.Font.GothamBold)
     CountText.Position = UDim2.new(0, 10, 0, 231)
     CountText.Size = UDim2.new(0.56, -10, 0, 15)
     CountText.ZIndex = 8
-
-    local countConstraint = Instance.new("UITextSizeConstraint")
-    countConstraint.MinTextSize = 7
-    countConstraint.MaxTextSize = 9
-    countConstraint.Parent = CountText
+    do
+        local countConstraint = Instance.new("UITextSizeConstraint")
+        countConstraint.MinTextSize = 7
+        countConstraint.MaxTextSize = 9
+        countConstraint.Parent = CountText
+    end
 
     local AllFunctionality = Instance.new("TextButton")
     AllFunctionality.Size = UDim2.new(1, -20, 0, 30)
@@ -2107,24 +2468,26 @@ local function createCard(cfg, order)
 
     local LoadStroke = stroke(LoadScript, cfg.Accent2, 1, 0.45)
 
-    Card.MouseEnter:Connect(function()
-        tween(Card, {BackgroundColor3 = COLORS.CardHover}, 0.15):Play()
-        tween(CardStroke, {Color = cfg.Accent, Transparency = 0.35}, 0.15):Play()
+    Card.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            tween(Card, { BackgroundColor3 = COLORS.CardHover }, 0.15):Play()
+            tween(CardStroke, { Color = cfg.Accent, Transparency = 0.35 }, 0.15):Play()
+        end
     end)
 
     Card.MouseLeave:Connect(function()
-        tween(Card, {BackgroundColor3 = COLORS.Card}, 0.15):Play()
-        tween(CardStroke, {Color = COLORS.Border, Transparency = 0}, 0.15):Play()
+        tween(Card, { BackgroundColor3 = COLORS.Card }, 0.15):Play()
+        tween(CardStroke, { Color = COLORS.Border, Transparency = 0 }, 0.15):Play()
     end)
 
     AllFunctionality.MouseEnter:Connect(function()
-        tween(AllFunctionality, {BackgroundColor3 = Color3.fromRGB(31, 35, 50)}, 0.12):Play()
-        tween(AllStroke, {Transparency = 0.1}, 0.12):Play()
+        tween(AllFunctionality, { BackgroundColor3 = Color3.fromRGB(31, 35, 50) }, 0.12):Play()
+        tween(AllStroke, { Transparency = 0.1 }, 0.12):Play()
     end)
 
     AllFunctionality.MouseLeave:Connect(function()
-        tween(AllFunctionality, {BackgroundColor3 = Color3.fromRGB(26, 29, 42)}, 0.12):Play()
-        tween(AllStroke, {Transparency = 0.6}, 0.12):Play()
+        tween(AllFunctionality, { BackgroundColor3 = Color3.fromRGB(26, 29, 42) }, 0.12):Play()
+        tween(AllStroke, { Transparency = 0.6 }, 0.12):Play()
     end)
 
     AllFunctionality.Activated:Connect(function()
@@ -2132,37 +2495,27 @@ local function createCard(cfg, order)
     end)
 
     LoadScript.MouseEnter:Connect(function()
-        tween(LoadScript, {BackgroundColor3 = cfg.Accent2}, 0.12):Play()
-        tween(LoadStroke, {Transparency = 0.05}, 0.12):Play()
+        tween(LoadScript, { BackgroundColor3 = cfg.Accent2 }, 0.12):Play()
+        tween(LoadStroke, { Transparency = 0.05 }, 0.12):Play()
     end)
 
     LoadScript.MouseLeave:Connect(function()
-        tween(LoadScript, {BackgroundColor3 = Color3.fromRGB(0, 180, 135)}, 0.12):Play()
-        tween(LoadStroke, {Transparency = 0.45}, 0.12):Play()
+        tween(LoadScript, { BackgroundColor3 = Color3.fromRGB(0, 180, 135) }, 0.12):Play()
+        tween(LoadStroke, { Transparency = 0.45 }, 0.12):Play()
     end)
 
     LoadScript.Activated:Connect(function()
         launchSelected(cfg)
     end)
 
-    table.insert(CardObjects, {
-        Config = cfg,
-        Card = Card,
-    })
+    table.insert(CardObjects, { Config = cfg, Card = Card })
 end
 
 for index, cfg in ipairs(CONFIG.Cards) do
     createCard(cfg, index)
 end
 
-local EmptyState = createText(
-    CardsScroll,
-    "NO GAMES FOUND",
-    14,
-    COLORS.Muted,
-    Enum.Font.GothamBold,
-    Enum.TextXAlignment.Center
-)
+local EmptyState = createText(CardsScroll, "NO GAMES FOUND", 14, COLORS.Muted, Enum.Font.GothamBold, Enum.TextXAlignment.Center)
 EmptyState.Name = "EmptyState"
 EmptyState.Size = UDim2.new(1, -20, 0, 44)
 EmptyState.LayoutOrder = 9999
@@ -2170,7 +2523,7 @@ EmptyState.Visible = false
 EmptyState.ZIndex = 8
 
 --=======================================================
--- CATEGORY / NAV EVENTS
+-- SIDEBAR EVENTS
 --=======================================================
 
 local function selectCategory(category)
@@ -2178,15 +2531,10 @@ local function selectCategory(category)
 
     for name, data in pairs(SidebarButtons) do
         local active = string.upper(name) == string.upper(category)
-
         data.Indicator.Visible = active
-
         tween(data.Button, {
-            BackgroundColor3 = active
-                and Color3.fromRGB(23, 27, 39)
-                or Color3.fromRGB(17, 19, 28),
+            BackgroundColor3 = active and Color3.fromRGB(23, 27, 39) or Color3.fromRGB(17, 19, 28),
         }, 0.15):Play()
-
         tween(data.Label, {
             TextColor3 = active and COLORS.White or COLORS.Muted,
         }, 0.15):Play()
@@ -2202,66 +2550,41 @@ local function selectCategory(category)
 end
 
 selectCategory("ALL")
-
-AllButton.Activated:Connect(function()
-    selectCategory("ALL")
-end)
-
-ShuterButton.Activated:Connect(function()
-    selectCategory("SHUTER")
-end)
-
-ObiButton.Activated:Connect(function()
-    selectCategory("OBI")
-end)
-
-SurvivalButton.Activated:Connect(function()
-    selectCategory("SURVIVAL")
-end)
-
-SimulatorButton.Activated:Connect(function()
-    selectCategory("SIMULATOR")
-end)
-
-FooterCredits.Activated:Connect(function()
-    selectCategory("CREDITS")
-end)
-
+AllButton.Activated:Connect(function() selectCategory("ALL") end)
+ShuterButton.Activated:Connect(function() selectCategory("SHUTER") end)
+ObiButton.Activated:Connect(function() selectCategory("OBI") end)
+SurvivalButton.Activated:Connect(function() selectCategory("SURVIVAL") end)
+SimulatorButton.Activated:Connect(function() selectCategory("SIMULATOR") end)
+FooterCredits.Activated:Connect(function() selectCategory("CREDITS") end)
 Search:GetPropertyChangedSignal("Text"):Connect(updateCardVisibility)
+
+--=======================================================
+-- BUTTON EVENTS
+--=======================================================
 
 BackButton.Activated:Connect(hideDetails)
 DetailsClose.Activated:Connect(hideDetails)
 DetailsCloseBottom.Activated:Connect(hideDetails)
-
 RunButton.Activated:Connect(function()
     launchSelected(CurrentDetails)
 end)
-
 RunButton.MouseEnter:Connect(function()
     if CurrentDetails then
-        tween(RunButton, {BackgroundColor3 = CurrentDetails.Accent}, 0.12):Play()
+        tween(RunButton, { BackgroundColor3 = CurrentDetails.Accent }, 0.12):Play()
     end
 end)
-
 RunButton.MouseLeave:Connect(function()
-    tween(RunButton, {BackgroundColor3 = Color3.fromRGB(37, 201, 238)}, 0.12):Play()
+    tween(RunButton, { BackgroundColor3 = Color3.fromRGB(37, 201, 238) }, 0.12):Play()
 end)
 
 ExpandButton.Activated:Connect(function()
     local expanded = Main.Size.X.Scale < 0.95
-
     tween(Main, {
-        Size = expanded
-            and UDim2.new(0.985, 0, 0.965, 0)
-            or UDim2.new(0.90, 0, 0.86, 0),
+        Size = expanded and UDim2.new(0.985, 0, 0.965, 0) or UDim2.new(0.90, 0, 0.86, 0),
     }, 0.20, Enum.EasingStyle.Quint):Play()
 end)
 
 CloseButton.Activated:Connect(function()
-    if launchInProgress then
-        return
-    end
-
     local closeMain = tween(Main, {
         Size = UDim2.new(0.84, 0, 0.05, 0),
     }, 0.20, Enum.EasingStyle.Quint)
@@ -2274,7 +2597,7 @@ CloseButton.Activated:Connect(function()
     closeBackdrop:Play()
     closeMain.Completed:Wait()
 
-    if ScreenGui and ScreenGui.Parent then
+    if ScreenGui then
         ScreenGui:Destroy()
     end
 end)
@@ -2285,18 +2608,12 @@ end)
 
 local function updateGrid()
     local width = CardsScroll.AbsoluteSize.X
-    local gap = 12
 
+    local gap = 12
     local availableWidth = math.max(width - (gap * 2) - 8, 60)
     local cellWidth = math.floor(availableWidth / 3)
 
-    if width < 850 then
-        cellWidth = math.floor(math.max(width - 18, 150) / 2)
-        Grid.FillDirectionMaxCells = 2
-    else
-        Grid.FillDirectionMaxCells = 3
-    end
-
+    Grid.FillDirectionMaxCells = 3
     Grid.CellSize = UDim2.fromOffset(cellWidth, 320)
     Grid.CellPadding = UDim2.fromOffset(gap, 14)
     Grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -2367,9 +2684,7 @@ do
     local startPosition
 
     Header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPosition = Main.Position
@@ -2377,9 +2692,7 @@ do
     end)
 
     Header.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
@@ -2389,13 +2702,11 @@ do
             return
         end
 
-        if input.UserInputType ~= Enum.UserInputType.MouseMovement
-            and input.UserInputType ~= Enum.UserInputType.Touch then
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
             return
         end
 
         local delta = input.Position - dragStart
-
         Main.Position = UDim2.new(
             startPosition.X.Scale,
             startPosition.X.Offset + delta.X,
@@ -2430,9 +2741,3 @@ task.delay(0.3, function()
         notify("NEXUS TACTICAL HUB • READY")
     end
 end)
-
--- NOTE:
--- The old automatic:
--- loadstring(game:HttpGet(".../Nexus-Mining-Simulator.lua"))()
--- was intentionally removed.
--- Mining Simulator now launches only from its card.
