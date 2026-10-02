@@ -1,5 +1,5 @@
 --// ============================================================
---// NEXUS MATH TOWER RACE V3
+--// NEXUS MATH TOWER RACE V4
 --// Compact 3D UI / Mobile + PC / Smart Solver
 --//
 --// UI changes in V3:
@@ -100,8 +100,74 @@ local function normalizeMathText(text)
 end
 
 --// ============================================================
---// MATH PARSER
+--// ADVANCED MATH ENGINE V4
+--//
+--// Handles:
+--//  • Normal arithmetic + - × ÷ * / % ^
+--//  • Correct order of operations
+--//  • Parentheses / negative values / decimals
+--//  • Scientific notation
+--//  • Factorials
+--//  • sqrt / cbrt / abs / floor / ceil / round
+--//  • sin / cos / tan / asin / acos / atan
+--//  • ln / log / log10 / exp
+--//  • pi / e constants
+--//  • nearest whole / tenth / hundredth / thousandth
+--//  • decimal-place rounding
+--//  • percent-of / what-percent / increase / decrease
+--//  • average / mean / median / mode / min / max / range
+--//  • common geometry + Pythagorean questions
+--//  • text operators: plus / minus / times / divided by
+--//  • safe recognition that does NOT replace x inside words
 --// ============================================================
+
+local function normalizeMathText(text)
+    text = tostring(text or "")
+
+    -- Unicode / typographic operators.
+    text = text
+        :gsub("×", "*")
+        :gsub("✕", "*")
+        :gsub("·", "*")
+        :gsub("⋅", "*")
+        :gsub("÷", "/")
+        :gsub("∕", "/")
+        :gsub("−", "-")
+        :gsub("–", "-")
+        :gsub("—", "-")
+        :gsub("＋", "+")
+        :gsub("π", " pi ")
+        :gsub("√", " sqrt ")
+
+    -- Word operators. These use boundaries so words such as
+    -- "maximum" and "xylophone" are not damaged.
+    text = text:gsub("%f[%a]divided%s+by%f[%A]", " /")
+    text = text:gsub("%f[%a]divide%s+by%f[%A]", " /")
+    text = text:gsub("%f[%a]divided%f[%A]", " /")
+    text = text:gsub("%f[%a]multiply%s+by%f[%A]", " *")
+    text = text:gsub("%f[%a]multiplied%s+by%f[%A]", " *")
+    text = text:gsub("%f[%a]times%f[%A]", " *")
+    text = text:gsub("%f[%a]plus%f[%A]", " +")
+    text = text:gsub("%f[%a]minus%f[%A]", " -")
+    text = text:gsub("%f[%a]modulo%f[%A]", " %")
+    text = text:gsub("%f[%a]mod%f[%A]", " %")
+
+    -- Only treat x/X as multiplication when it is between operands.
+    -- This fixes the old bug where every letter x in the question was
+    -- converted into *, corrupting normal words.
+    for _ = 1, 4 do
+        text = text:gsub("([%d%.%)])%s*[xX]%s*([%d%.%(])", "%1 * %2")
+    end
+
+    -- Common textual math notation.
+    text = text:gsub("%f[%a]squared%f[%A]", " ^ 2 ")
+    text = text:gsub("%f[%a]cubed%f[%A]", " ^ 3 ")
+
+    -- Decimal comma only when it is clearly a decimal point.
+    text = text:gsub("(%d),(%d)", "%1.%2")
+
+    return text
+end
 
 local function tokenize(expression)
     expression = normalizeMathText(expression)
@@ -109,6 +175,13 @@ local function tokenize(expression)
     local tokens = {}
     local i = 1
     local length = #expression
+
+    local function push(kind, value)
+        tokens[#tokens + 1] = {
+            kind = kind,
+            value = value,
+        }
+    end
 
     while i <= length do
         local char = expression:sub(i, i)
@@ -118,41 +191,72 @@ local function tokenize(expression)
 
         elseif char:match("[%d%.]") then
             local start = i
-            local dotCount = 0
+            local hasDigits = false
 
-            while i <= length do
-                local current = expression:sub(i, i)
-
-                if current == "." then
-                    dotCount += 1
-                    if dotCount > 1 then
-                        break
-                    end
-                elseif not current:match("%d") then
-                    break
-                end
-
+            while i <= length and expression:sub(i, i):match("%d") do
+                hasDigits = true
                 i += 1
             end
 
-            local number = tonumber(expression:sub(start, i - 1))
-            if number == nil then
+            if i <= length and expression:sub(i, i) == "." then
+                i += 1
+                while i <= length and expression:sub(i, i):match("%d") do
+                    hasDigits = true
+                    i += 1
+                end
+            end
+
+            -- Scientific notation: 1.25e-3 / 2E+4
+            if i <= length and expression:sub(i, i):match("[eE]") then
+                local expStart = i
+                i += 1
+
+                if i <= length and expression:sub(i, i):match("[+-]") then
+                    i += 1
+                end
+
+                local expDigitsStart = i
+                while i <= length and expression:sub(i, i):match("%d") do
+                    i += 1
+                end
+
+                if expDigitsStart == i then
+                    i = expStart
+                end
+            end
+
+            local raw = expression:sub(start, i - 1)
+            local number = tonumber(raw)
+
+            if not hasDigits or number == nil then
                 return nil
             end
 
-            tokens[#tokens + 1] = {
-                kind = "number",
-                value = number,
-            }
+            push("number", number)
 
-        elseif char == "+" or char == "-" or char == "*" or char == "/"
-            or char == "%" or char == "^" or char == "(" or char == ")" then
+        elseif char:match("[%a_]") then
+            local start = i
+            i += 1
 
-            tokens[#tokens + 1] = {
-                kind = "operator",
-                value = char,
-            }
+            while i <= length and expression:sub(i, i):match("[%w_]") do
+                i += 1
+            end
 
+            local name = string.lower(expression:sub(start, i - 1))
+            push("identifier", name)
+
+        elseif char == "+"
+            or char == "-"
+            or char == "*"
+            or char == "/"
+            or char == "%"
+            or char == "^"
+            or char == "!"
+            or char == "("
+            or char == ")"
+            or char == "," then
+
+            push("operator", char)
             i += 1
         else
             return nil
@@ -162,8 +266,52 @@ local function tokenize(expression)
     return tokens
 end
 
+local function safeNumber(value)
+    if value == nil then
+        return nil
+    end
+
+    if value ~= value
+        or value == math.huge
+        or value == -math.huge then
+        return nil
+    end
+
+    return value
+end
+
+local function factorial(value)
+    if value == nil or value < 0 then
+        return nil
+    end
+
+    if math.abs(value - math.round(value)) > 0.0000001 then
+        return nil
+    end
+
+    value = math.round(value)
+
+    if value > 170 then
+        return nil
+    end
+
+    local result = 1
+
+    for n = 2, value do
+        result *= n
+    end
+
+    return result
+end
+
+local function roundTo(value, places)
+    local factor = 10 ^ places
+    return math.round(value * factor) / factor
+end
+
 local function evaluateExpression(expression)
     local tokens = tokenize(expression)
+
     if not tokens or #tokens == 0 then
         return nil
     end
@@ -172,8 +320,9 @@ local function evaluateExpression(expression)
 
     local parseExpression
     local parseTerm
-    local parsePower
     local parseUnary
+    local parsePower
+    local parsePostfix
     local parsePrimary
 
     local function current()
@@ -189,8 +338,112 @@ local function evaluateExpression(expression)
         return false
     end
 
+    local function functionValue(name, args)
+        local first = args[1]
+
+        if name == "sqrt" then
+            if #args ~= 1 or first < 0 then return nil end
+            return math.sqrt(first)
+
+        elseif name == "cbrt" or name == "cuberoot" or name == "cubrt" then
+            if #args ~= 1 then return nil end
+            return first < 0
+                and -(math.abs(first) ^ (1 / 3))
+                or (first ^ (1 / 3))
+
+        elseif name == "abs" then
+            if #args ~= 1 then return nil end
+            return math.abs(first)
+
+        elseif name == "floor" then
+            if #args ~= 1 then return nil end
+            return math.floor(first)
+
+        elseif name == "ceil" or name == "ceiling" then
+            if #args ~= 1 then return nil end
+            return math.ceil(first)
+
+        elseif name == "round" then
+            if #args == 1 then
+                return math.round(first)
+            elseif #args == 2 then
+                return roundTo(first, math.round(args[2]))
+            end
+            return nil
+
+        elseif name == "sin" then
+            if #args ~= 1 then return nil end
+            return math.sin(first)
+
+        elseif name == "cos" then
+            if #args ~= 1 then return nil end
+            return math.cos(first)
+
+        elseif name == "tan" then
+            if #args ~= 1 then return nil end
+            return math.tan(first)
+
+        elseif name == "asin" then
+            if #args ~= 1 or first < -1 or first > 1 then return nil end
+            return math.asin(first)
+
+        elseif name == "acos" then
+            if #args ~= 1 or first < -1 or first > 1 then return nil end
+            return math.acos(first)
+
+        elseif name == "atan" or name == "arctan" then
+            if #args ~= 1 then return nil end
+            return math.atan(first)
+
+        elseif name == "ln" then
+            if #args ~= 1 or first <= 0 then return nil end
+            return math.log(first)
+
+        elseif name == "log" or name == "log10" then
+            if #args == 1 then
+                if first <= 0 then return nil end
+                return math.log(first) / math.log(10)
+            elseif #args == 2 then
+                if first <= 0 or args[2] <= 0 or args[2] == 1 then return nil end
+                return math.log(first) / math.log(args[2])
+            end
+            return nil
+
+        elseif name == "exp" then
+            if #args ~= 1 then return nil end
+            return math.exp(first)
+
+        elseif name == "min" then
+            if #args < 1 then return nil end
+            local result = args[1]
+            for i = 2, #args do
+                result = math.min(result, args[i])
+            end
+            return result
+
+        elseif name == "max" then
+            if #args < 1 then return nil end
+            local result = args[1]
+            for i = 2, #args do
+                result = math.max(result, args[i])
+            end
+            return result
+
+        elseif name == "avg" or name == "average" or name == "mean" then
+            if #args < 1 then return nil end
+            local total = 0
+            for _, item in ipairs(args) do
+                total += item
+            end
+            return total / #args
+        end
+
+        return nil
+    end
+
     parsePrimary = function()
         local token = current()
+
         if not token then
             return nil
         end
@@ -198,6 +451,46 @@ local function evaluateExpression(expression)
         if token.kind == "number" then
             index += 1
             return token.value
+        end
+
+        if token.kind == "identifier" then
+            local name = token.value
+            index += 1
+
+            if name == "pi" then
+                return math.pi
+            end
+
+            if name == "e" then
+                return math.exp(1)
+            end
+
+            if consume("(") then
+                local args = {}
+
+                if not consume(")") then
+                    while true do
+                        local value = parseExpression()
+                        if value == nil then
+                            return nil
+                        end
+
+                        args[#args + 1] = value
+
+                        if consume(")") then
+                            break
+                        end
+
+                        if not consume(",") then
+                            return nil
+                        end
+                    end
+                end
+
+                return functionValue(name, args)
+            end
+
+            return nil
         end
 
         if consume("(") then
@@ -211,41 +504,61 @@ local function evaluateExpression(expression)
         return nil
     end
 
+    parsePostfix = function()
+        local value = parsePrimary()
+        if value == nil then
+            return nil
+        end
+
+        while consume("!") do
+            value = factorial(value)
+            if value == nil then
+                return nil
+            end
+        end
+
+        return value
+    end
+
+    -- Power binds tighter than unary minus: -2^2 = -4.
+    parsePower = function()
+        local left = parsePostfix()
+
+        if left == nil then
+            return nil
+        end
+
+        if consume("^") then
+            local right = parseUnary()
+            if right == nil then
+                return nil
+            end
+
+            left = left ^ right
+        end
+
+        return safeNumber(left)
+    end
+
     parseUnary = function()
         if consume("+") then
             return parseUnary()
         end
 
         if consume("-") then
-            local result = parseUnary()
-            if result == nil then
+            local value = parseUnary()
+            if value == nil then
                 return nil
             end
-            return -result
+            return -value
         end
 
-        return parsePrimary()
-    end
-
-    parsePower = function()
-        local left = parseUnary()
-        if left == nil then
-            return nil
-        end
-
-        if consume("^") then
-            local right = parsePower()
-            if right == nil then
-                return nil
-            end
-            left = left ^ right
-        end
-
-        return left
+        return parsePower()
     end
 
     parseTerm = function()
-        local left = parsePower()
+        local left = parseUnary()
+
         if left == nil then
             return nil
         end
@@ -258,7 +571,7 @@ local function evaluateExpression(expression)
 
             if token.value == "*" then
                 index += 1
-                local right = parsePower()
+                local right = parseUnary()
                 if right == nil then
                     return nil
                 end
@@ -266,7 +579,7 @@ local function evaluateExpression(expression)
 
             elseif token.value == "/" then
                 index += 1
-                local right = parsePower()
+                local right = parseUnary()
                 if right == nil or right == 0 then
                     return nil
                 end
@@ -274,7 +587,7 @@ local function evaluateExpression(expression)
 
             elseif token.value == "%" then
                 index += 1
-                local right = parsePower()
+                local right = parseUnary()
                 if right == nil or right == 0 then
                     return nil
                 end
@@ -284,11 +597,12 @@ local function evaluateExpression(expression)
             end
         end
 
-        return left
+        return safeNumber(left)
     end
 
     parseExpression = function()
         local left = parseTerm()
+
         if left == nil then
             return nil
         end
@@ -319,7 +633,7 @@ local function evaluateExpression(expression)
             end
         end
 
-        return left
+        return safeNumber(left)
     end
 
     local result = parseExpression()
@@ -328,45 +642,610 @@ local function evaluateExpression(expression)
         return nil
     end
 
-    if result ~= result or result == math.huge or result == -math.huge then
+    return roundTo(result, 10)
+end
+
+local function extractNumbers(text)
+    local numbers = {}
+
+    -- Keep a simple, robust numeric scanner. It recognizes signed
+    -- decimals and scientific notation, while ignoring ordinary words.
+    local i = 1
+    local length = #text
+
+    while i <= length do
+        local char = text:sub(i, i)
+        local prev = i > 1 and text:sub(i - 1, i - 1) or " "
+
+        local isStart = char:match("%d")
+            or (char == "." and i < length and text:sub(i + 1, i + 1):match("%d"))
+            or ((char == "+" or char == "-")
+                and i < length
+                and text:sub(i + 1, i + 1):match("%d")
+                and (prev:match("[%s%(,:=]") or i == 1))
+
+        if isStart then
+            local start = i
+
+            if char == "+" or char == "-" then
+                i += 1
+            end
+
+            local hasDigits = false
+            while i <= length and text:sub(i, i):match("%d") do
+                hasDigits = true
+                i += 1
+            end
+
+            if i <= length and text:sub(i, i) == "." then
+                i += 1
+                while i <= length and text:sub(i, i):match("%d") do
+                    hasDigits = true
+                    i += 1
+                end
+            end
+
+            if hasDigits and i <= length and text:sub(i, i):match("[eE]") then
+                local expStart = i
+                i += 1
+                if i <= length and text:sub(i, i):match("[+-]") then
+                    i += 1
+                end
+
+                local expDigits = i
+                while i <= length and text:sub(i, i):match("%d") do
+                    i += 1
+                end
+
+                if expDigits == i then
+                    i = expStart
+                end
+            end
+
+            local value = tonumber(text:sub(start, i - 1))
+            if value ~= nil then
+                numbers[#numbers + 1] = value
+            end
+        else
+            i += 1
+        end
+    end
+
+    return numbers
+end
+
+local function getFirstNumber(text)
+    local numbers = extractNumbers(text)
+    return numbers[1]
+end
+
+local function getLastNumber(text)
+    local numbers = extractNumbers(text)
+    return numbers[#numbers]
+end
+
+local function hasAny(text, patterns)
+    for _, pattern in ipairs(patterns) do
+        if text:find(pattern) then
+            return true
+        end
+    end
+    return false
+end
+
+local function normalizeSemanticText(text)
+    local normalized = normalizeMathText(text)
+    normalized = string.lower(normalized)
+    normalized = normalized:gsub("[%?]", " ")
+    normalized = normalized:gsub("%s+", " ")
+    return normalized
+end
+
+local function median(numbers)
+    if #numbers == 0 then
         return nil
     end
 
-    return math.round(result * 1000000) / 1000000
+    local sorted = table.clone(numbers)
+    table.sort(sorted)
+
+    local middle = (#sorted + 1) / 2
+
+    if middle % 1 == 0 then
+        return sorted[middle]
+    end
+
+    local a = sorted[math.floor(middle)]
+    local b = sorted[math.ceil(middle)]
+    return (a + b) / 2
 end
 
---// ============================================================
---// QUESTION EXTRACTION
---// ============================================================
+local function mode(numbers)
+    if #numbers == 0 then
+        return nil
+    end
+
+    local counts = {}
+    local bestValue
+    local bestCount = 0
+
+    for _, value in ipairs(numbers) do
+        local key = tostring(roundTo(value, 10))
+        counts[key] = (counts[key] or 0) + 1
+
+        if counts[key] > bestCount then
+            bestCount = counts[key]
+            bestValue = value
+        end
+    end
+
+    if bestCount <= 1 then
+        return nil
+    end
+
+    return bestValue
+end
+
+local function parseRoundingQuestion(text, normalized)
+    local lower = normalized
+    local numbers = extractNumbers(text)
+
+    if #numbers == 0 then
+        return nil
+    end
+
+    local roundWord = lower:find("round")
+        or lower:find("rounded")
+        or lower:find("nearest")
+
+    if not roundWord then
+        return nil
+    end
+
+    local places
+    local multiplier
+
+    if lower:find("whole number")
+        or lower:find("whole number")
+        or lower:find("integer") then
+
+        places = 0
+
+    elseif lower:find("nearest tenth")
+        or lower:find("nearest 0%.1") then
+
+        places = 1
+
+    elseif lower:find("nearest hundredth")
+        or lower:find("nearest 0%.01") then
+
+        places = 2
+
+    elseif lower:find("nearest thousandth")
+        or lower:find("nearest 0%.001") then
+
+        places = 3
+
+    elseif lower:find("nearest ten") then
+        multiplier = 10
+
+    elseif lower:find("nearest hundred") then
+        multiplier = 100
+
+    elseif lower:find("nearest thousand") then
+        multiplier = 1000
+
+    elseif lower:find("decimal place")
+        or lower:find("decimal places")
+        or lower:find("d%.p%.") then
+
+        local decimalCount = lower:match("to%s+(%d+)%s+decimal")
+            or lower:match("(%d+)%s+decimal%s+places")
+
+        places = decimalCount and tonumber(decimalCount) or 0
+
+        -- In the form "round 2.345 to 2 decimal places",
+        -- the input is normally the first numeric value.
+        if #numbers >= 2 and decimalCount then
+            local requested = tonumber(decimalCount)
+            for i, value in ipairs(numbers) do
+                if math.abs(value - requested) < 0.0000001 then
+                    table.remove(numbers, i)
+                    break
+                end
+            end
+        end
+    else
+        return nil
+    end
+
+    -- "round 2.2 to ..." => first number.
+    -- "round to ... 2.2" => last number.
+    local value
+    if lower:match("round%s+[%-%+]?[%d%.]") then
+        value = numbers[1]
+    else
+        value = numbers[#numbers]
+    end
+
+    if value == nil then
+        return nil
+    end
+
+    local result
+
+    if multiplier then
+        result = math.round(value / multiplier) * multiplier
+    else
+        result = roundTo(value, math.max(0, math.floor(places or 0)))
+    end
+
+    return safeNumber(result), "rounding"
+end
+
+local function parseSemanticQuestion(text)
+    local normalized = normalizeSemanticText(text)
+    local numbers = extractNumbers(normalized)
+
+    if #numbers == 0 then
+        -- A sqrt symbol may be transformed into the word sqrt,
+        -- but numbers are still required for the result.
+        return nil
+    end
+
+    -- ============================================================
+    -- ROUNDING
+    -- ============================================================
+    local rounded, roundSource = parseRoundingQuestion(text, normalized)
+    if rounded ~= nil then
+        return rounded, roundSource
+    end
+
+    -- ============================================================
+    -- ABSOLUTE VALUE
+    -- ============================================================
+    if hasAny(normalized, {
+        "absolute value",
+        "abs of",
+    }) then
+        local value = getLastNumber(normalized)
+        if value ~= nil then
+            return math.abs(value), "absolute"
+        end
+    end
+
+    -- ============================================================
+    -- SQUARE / CUBE ROOT
+    -- ============================================================
+    if normalized:find("square root")
+        or normalized:find("sqrt") then
+
+        local value = getLastNumber(normalized)
+        if value ~= nil and value >= 0 then
+            return math.sqrt(value), "square-root"
+        end
+    end
+
+    if normalized:find("cube root")
+        or normalized:find("cubic root")
+        or normalized:find("cbrt") then
+
+        local value = getLastNumber(normalized)
+        if value ~= nil then
+            return value < 0
+                and -(math.abs(value) ^ (1 / 3))
+                or (value ^ (1 / 3)), "cube-root"
+        end
+    end
+
+    -- ============================================================
+    -- FACTORIAL
+    -- ============================================================
+    if normalized:find("factorial") then
+        local value = getLastNumber(normalized)
+        local result = factorial(value)
+        if result ~= nil then
+            return result, "factorial"
+        end
+    end
+
+    -- ============================================================
+    -- POWER WORDING
+    -- ============================================================
+    if normalized:find("squared") then
+        local value = getLastNumber(normalized)
+        if value ~= nil then
+            return value ^ 2, "squared"
+        end
+    end
+
+    if normalized:find("cubed") then
+        local value = getLastNumber(normalized)
+        if value ~= nil then
+            return value ^ 3, "cubed"
+        end
+    end
+
+    if normalized:find("to the power")
+        or normalized:find("raised to") then
+
+        if #numbers >= 2 then
+            return numbers[1] ^ numbers[2], "power"
+        end
+    end
+
+    -- ============================================================
+    -- PERCENT
+    -- ============================================================
+    if normalized:find("what percent")
+        or normalized:find("what percentage") then
+
+        if #numbers >= 2 and numbers[2] ~= 0 then
+            return numbers[1] / numbers[2] * 100, "percent"
+        end
+    end
+
+    if normalized:find("percent of")
+        or normalized:find("percentage of")
+        or normalized:find("%%%s*of") then
+
+        if #numbers >= 2 then
+            return numbers[1] / 100 * numbers[2], "percent-of"
+        end
+    end
+
+    if normalized:find("increase")
+        and (normalized:find("percent") or normalized:find("%%"))
+        and normalized:find("by")
+        and #numbers >= 2 then
+
+        return numbers[1] * (1 + numbers[2] / 100), "percent-increase"
+    end
+
+    if normalized:find("decrease")
+        and (normalized:find("percent") or normalized:find("%%"))
+        and normalized:find("by")
+        and #numbers >= 2 then
+
+        return numbers[1] * (1 - numbers[2] / 100), "percent-decrease"
+    end
+
+    if (normalized:find("discount") or normalized:find("sale price"))
+        and #numbers >= 2 then
+
+        return numbers[1] * (1 - numbers[2] / 100), "discount"
+    end
+
+    -- ============================================================
+    -- AVERAGE / MEAN / MEDIAN / MODE / RANGE
+    -- ============================================================
+    if normalized:find("average")
+        or normalized:find("mean") then
+
+        local total = 0
+        for _, value in ipairs(numbers) do
+            total += value
+        end
+
+        return total / #numbers, "average"
+    end
+
+    if normalized:find("median") then
+        return median(numbers), "median"
+    end
+
+    if normalized:find("mode") then
+        local result = mode(numbers)
+        if result ~= nil then
+            return result, "mode"
+        end
+    end
+
+    if normalized:find("range")
+        and not normalized:find("range of motion") then
+
+        local minValue = numbers[1]
+        local maxValue = numbers[1]
+
+        for i = 2, #numbers do
+            minValue = math.min(minValue, numbers[i])
+            maxValue = math.max(maxValue, numbers[i])
+        end
+
+        return maxValue - minValue, "range"
+    end
+
+    if normalized:find("maximum")
+        or normalized:match("[^%a]max[^%a]") then
+
+        local result = numbers[1]
+        for i = 2, #numbers do
+            result = math.max(result, numbers[i])
+        end
+        return result, "maximum"
+    end
+
+    if normalized:find("minimum")
+        or normalized:match("[^%a]min[^%a]") then
+
+        local result = numbers[1]
+        for i = 2, #numbers do
+            result = math.min(result, numbers[i])
+        end
+        return result, "minimum"
+    end
+
+    -- ============================================================
+    -- PYTHAGOREAN THEOREM
+    -- ============================================================
+    if normalized:find("pythag")
+        or normalized:find("hypotenuse") then
+
+        if #numbers >= 2 then
+            local a = numbers[1]
+            local b = numbers[2]
+            return math.sqrt(a * a + b * b), "pythagorean"
+        end
+    end
+
+    -- ============================================================
+    -- COMMON GEOMETRY
+    -- ============================================================
+    if normalized:find("area") then
+        if normalized:find("circle") and #numbers >= 1 then
+            local radius = numbers[1]
+            return math.pi * radius * radius, "circle-area"
+        end
+
+        if normalized:find("triangle") and #numbers >= 2 then
+            return numbers[1] * numbers[2] / 2, "triangle-area"
+        end
+
+        if (normalized:find("rectangle") or normalized:find("rectangular"))
+            and #numbers >= 2 then
+
+            return numbers[1] * numbers[2], "rectangle-area"
+        end
+
+        if normalized:find("square") and #numbers >= 1 then
+            return numbers[1] * numbers[1], "square-area"
+        end
+    end
+
+    if normalized:find("perimeter") then
+        if normalized:find("rectangle") and #numbers >= 2 then
+            return 2 * (numbers[1] + numbers[2]), "rectangle-perimeter"
+        end
+
+        if normalized:find("square") and #numbers >= 1 then
+            return 4 * numbers[1], "square-perimeter"
+        end
+    end
+
+    if normalized:find("circumference")
+        and normalized:find("circle")
+        and #numbers >= 1 then
+
+        return 2 * math.pi * numbers[1], "circumference"
+    end
+
+    return nil
+end
+
+local function isLikelyMathQuestion(text)
+    local normalized = normalizeSemanticText(text)
+
+    if normalized:find("round")
+        or normalized:find("nearest")
+        or normalized:find("average")
+        or normalized:find("mean")
+        or normalized:find("median")
+        or normalized:find("mode")
+        or normalized:find("percent")
+        or normalized:find("percentage")
+        or normalized:find("square root")
+        or normalized:find("cube root")
+        or normalized:find("factorial")
+        or normalized:find("absolute value")
+        or normalized:find("pythag")
+        or normalized:find("hypotenuse")
+        or normalized:find("circumference")
+        or normalized:find("perimeter")
+        or normalized:find("calculate")
+        or normalized:find("solve")
+        or normalized:find("what is") then
+
+        return true
+    end
+
+    local compact = normalized:gsub("%s+", "")
+
+    -- Plain arithmetic like "12 + 7 × 4".
+    local digitCount = select(2, compact:gsub("%d", ""))
+    local operatorCount = select(2, compact:gsub("[%+%-%*/%%%^]", ""))
+
+    if digitCount >= 2 and operatorCount >= 1 then
+        return true
+    end
+
+    return false
+end
 
 local function parseQuestion(text)
-    text = normalizeMathText(text)
-    local candidates = {}
+    text = tostring(text or "")
 
-    for candidate in text:gmatch("[%d%.%+%-%*/%^%%%(%)]%s*[%d%.%+%-%*/%^%%%(%)]*") do
-        local compact = candidate:gsub("%s+", "")
-        if compact:find("%d") and compact:find("[%+%-%*/%^%%]") then
-            local answer = evaluateExpression(compact)
+    if #text == 0 then
+        return nil
+    end
+
+    local normalized = normalizeSemanticText(text)
+
+    -- Highest-confidence path: natural-language math.
+    local semanticValue, semanticType = parseSemanticQuestion(text)
+
+    if semanticValue ~= nil then
+        return {
+            expression = normalized,
+            answer = roundTo(semanticValue, 10),
+            score = 3000 + #normalized,
+            kind = semanticType or "semantic",
+        }
+    end
+
+    if not isLikelyMathQuestion(text) then
+        return nil
+    end
+
+    -- ============================================================
+    -- EXPRESSION EXTRACTION
+    -- ============================================================
+    local candidates = {}
+    local compact = normalizeMathText(text)
+
+    -- Replace irrelevant characters by spaces but preserve arithmetic.
+    -- Identifiers are only kept where evaluateExpression can understand them.
+    local cleaned = compact:gsub("[^%d%.%+%-%*/%%%^%!%(%)%,%a_%s]", " ")
+    cleaned = cleaned:gsub("%s+", " ")
+
+    -- First try the entire cleaned text. This catches explicit expressions
+    -- containing function names such as sqrt(25).
+    local whole = trim(cleaned)
+    if #whole > 0 then
+        local value = evaluateExpression(whole)
+        if value ~= nil then
+            candidates[#candidates + 1] = {
+                expression = whole,
+                answer = value,
+                score = 1600 + #whole,
+                kind = "expression",
+            }
+        end
+    end
+
+    -- Then scan arithmetic-looking segments. We deliberately require at
+    -- least two numeric values to avoid reading UI counters as questions.
+    for candidate in cleaned:gmatch("[%d%.%+%-%*/%%%^%!%(%)]%s*[%d%.%+%-%*/%%%^%!%(%)]*[%d%.%+%-%*/%%%^%!%(%)]*") do
+        local candidateText = trim(candidate)
+        local nums = extractNumbers(candidateText)
+
+        if #nums >= 2
+            and candidateText:find("[%+%-%*/%%^]" ) then
+
+            local answer = evaluateExpression(candidateText)
+
             if answer ~= nil then
                 candidates[#candidates + 1] = {
-                    expression = compact,
+                    expression = candidateText,
                     answer = answer,
-                    score = #compact,
+                    score = 1000 + #candidateText,
+                    kind = "expression",
                 }
             end
         end
     end
 
-    local stripped = text:gsub("[^%d%.%+%-%*/%^%%%(%)]", "")
-    if stripped:find("%d") and stripped:find("[%+%-%*/%^%%]") then
-        local answer = evaluateExpression(stripped)
-        if answer ~= nil then
-            candidates[#candidates + 1] = {
-                expression = stripped,
-                answer = answer,
-                score = #stripped + 1000,
-            }
-        end
+    if #candidates == 0 then
+        return nil
     end
 
     table.sort(candidates, function(a, b)
@@ -377,7 +1256,17 @@ local function parseQuestion(text)
 end
 
 local function sameNumber(a, b)
-    return a ~= nil and b ~= nil and math.abs(a - b) < 0.00001
+    if a == nil or b == nil then
+        return false
+    end
+
+    local difference = math.abs(a - b)
+    local tolerance = math.max(
+        0.00001,
+        math.max(math.abs(a), math.abs(b)) * 0.0000005
+    )
+
+    return difference <= tolerance
 end
 
 --// ============================================================
@@ -417,13 +1306,24 @@ local function getButtonValue(buttonObject)
         return nil
     end
 
-    local direct = tonumber(text)
+    text = trim(text)
+    text = text:gsub("^=%s*", "")
+    text = trim(text)
+
+    -- Numeric answer buttons can contain a thousands separator or
+    -- harmless surrounding punctuation. Do not extract numbers from
+    -- arbitrary labels such as "Level 25" because that can select the
+    -- wrong button.
+    local numericText = text:gsub(",", "")
+    numericText = numericText:gsub("[!?]$", "")
+    numericText = trim(numericText)
+
+    local direct = tonumber(numericText)
     if direct ~= nil then
         return direct
     end
 
-    text = text:gsub("^=%s*", "")
-    if text:find("[%+%-%*/%^%%]") then
+    if text:find("[%+%-%*/%^%%]" ) then
         return evaluateExpression(text)
     end
 
@@ -1100,7 +2000,7 @@ addStroke(VersionChip, Color3.fromRGB(255, 66, 111), 0.6, 1)
 
 local VersionText = makeLabel(
     VersionChip,
-    "MTR / V3",
+    "MTR / V4",
     UDim2.fromScale(0, 0),
     UDim2.fromScale(1, 1),
     Enum.Font.GothamBold,
@@ -1602,7 +2502,7 @@ makeLabel(
 
 makeLabel(
     InfoPage,
-    "MATH TOWER RACE  /  V3",
+    "MATH TOWER RACE  /  V4",
     UDim2.fromOffset(4, 22),
     UDim2.new(1, -8, 0, 15),
     Enum.Font.GothamBold,
@@ -2043,7 +2943,7 @@ ScreenGui.Destroying:Connect(function()
     end
 end)
 
-print("[NEXUS] Math Tower Race V3 loaded")
+print("[NEXUS] Math Tower Race V4 loaded")
 print("[NEXUS] AutoSolve:", Config.AutoSolve)
 print("[NEXUS] Randomizer:", Config.Randomizer)
 print("[NEXUS] AntiAFK:", Config.AntiAFK)
