@@ -1,18 +1,8 @@
 --//======================================================
 --// NEXUS TACTICAL HUB - CREDITS + TELEGRAM COPY NOTIFICATION
 --//
---// Fixes:
---//  • Load Script button is actually created
---//  • Run + Load Script execute the selected game script
---//  • Close button works reliably (Activated)
---//  • Two green Online dots + Online text, moved left
---//  • User avatar has a gray outline
---//  • Roblox account ID is shown under the username
---//  • FPS / Ping use live client values
---//  • Supplied screenshot/asset IDs are restored
---//  • Search + ALL / SHUTER / OBI filtering retained
---//  • Details page still covers the whole hub
---//  • Tower of Hell card + functionality catalog added
+--// Full supplied hub with the requested card removed.
+--// All other supplied functionality remains unchanged.
 --//======================================================
 
 local Players = game:GetService("Players")
@@ -150,8 +140,6 @@ local CONFIG = {
                 } },
             },
         },
-
-
 
         {
             Id = "MurderMystery2",
@@ -432,12 +420,6 @@ local CONFIG = {
                 } },
             },
         },
-
-
-        --===================================================
-        -- NEW: MINING SIMULATOR
-        --===================================================
-
         {
             Id = "MiningSimulator",
             Title = "MINING SIMULATOR",
@@ -481,11 +463,6 @@ local CONFIG = {
                 } },
             },
         },
-
-        --===================================================
-        -- SELL LEMON
-        --===================================================
-
         {
             Id = "SellLemon",
             Title = "SELL LEMON",
@@ -519,8 +496,6 @@ local CONFIG = {
                 } },
             },
         },
-
-
         {
             Id = "MathTowerRace",
             Title = "MATH TOWER RACE",
@@ -587,169 +562,6 @@ local CONFIG = {
                 } },
             },
         },
-        --===================================================
-        -- STEAL AN EGG — FULL FUNCTION CATALOG
-        --===================================================
-
-        {
-            Id = "StealAnEgg",
-            Title = "STEAL AN EGG",
-            Category = "SIMULATOR",
-            Description = "NEXUS Steal an Egg — complete automation profile with every available Auto Steal, Plot, Serverhop, Misc, Webhook and Settings option.",
-            AssetId = "120994821167816",
-            ScriptUrl = "https://raw.githubusercontent.com/genriksukuna-dot/Roblox-Scripts/refs/heads/main/NEXUS_Steal_An_Egg.lua",
-            Accent = Color3.fromRGB(180, 90, 255),
-            Accent2 = Color3.fromRGB(90, 190, 255),
-            Features = {
-                { Category = "AUTO STEAL", Items = {
-                    "Auto Steal",
-                    "Travel Mode: Speed / Flight",
-                    "Travel Speed",
-                    "Target: Best Value",
-                    "Target: Egg Type Filter",
-                    "Target: Gen ($/s) Snipe",
-                    "Egg ($/s) Snipe Floor",
-                    "Area Selection",
-                    "Egg Type Filter",
-                    "Egg Type Selection",
-                    "Mutation Filter",
-                    "Mutation Selection",
-                    "Minimum Weight (Kg)",
-                    "Auto Hungry Monster",
-                    "Event Egg $/s Keep Floor",
-                } },
-                { Category = "PLOT / EGGS & PETS", Items = {
-                    "Auto Place Eggs",
-                    "Never Place Rarer",
-                    "Only Place Eggs Worth ($/s)",
-                    "Auto Hatch",
-                    "Auto Place Best Pets",
-                } },
-                { Category = "UPGRADES", Items = {
-                    "Auto Upgrade Trails",
-                    "Auto Upgrade Treadmill",
-                    "Auto Upgrade Pen",
-                    "Keep This Much Money",
-                } },
-                { Category = "SELLING", Items = {
-                    "Preview What Will Sell",
-                    "Sell Anything Earning Under ($/s)",
-                    "Auto Sell Pets",
-                    "Auto Sell Eggs",
-                } },
-                { Category = "TREADMILL TRAINING", Items = {
-                    "Auto Treadmill",
-                    "Train When Nothing To Steal",
-                    "Get Ready Early",
-                } },
-                { Category = "SERVER HOP", Items = {
-                    "Auto Hop",
-                    "No Steal For (Seconds)",
-                    "Been Here (Minutes)",
-                    "Hop Now",
-                    "Pages To Fetch",
-                    "Skip Full Servers",
-                    "Players: Lowest / Highest",
-                    "Skip Recent Servers",
-                    "Shared Recent-Server History",
-                } },
-                { Category = "EGG ESP", Items = {
-                    "Egg ESP",
-                    "ESP: All Eggs",
-                    "ESP: Eggs Matching My Filters",
-                    "ESP: Stolen Target Only",
-                    "Beam To Current Target",
-                    "Plot Egg ESP",
-                    "Payout Display",
-                    "Hatch Timer Display",
-                } },
-                { Category = "STATS / INDEX", Items = {
-                    "Show Stats Panel",
-                    "Money",
-                    "Income",
-                    "Pen",
-                    "Best Pet",
-                    "Best Egg",
-                    "Speed",
-                    "Session Statistics",
-                    "Auto Claim Index",
-                } },
-                { Category = "DEFENCE", Items = {
-                    "Anti Trap",
-                    "Anti Ragdoll",
-                    "Guardian Bypass",
-                } },
-                { Category = "BAT / COMBAT", Items = {
-                    "Bat Aura",
-                    "Auto Equip Bat For Recovery",
-                } },
-                { Category = "MOVEMENT / SPEED", Items = {
-                    "Bypass Speed",
-                    "Bypass Speed Cap",
-                    "Flight",
-                    "Flight Speed",
-                    "Flight Keybind",
-                    "WASD Flight Control",
-                    "Space — Fly Up",
-                    "Left Ctrl — Fly Down",
-                    "Altitude Hold",
-                } },
-                { Category = "PERFORMANCE", Items = {
-                    "Game Optimizer",
-                    "Shadows Optimization",
-                    "Particles Optimization",
-                    "Lights Optimization",
-                    "Post-Processing Optimization",
-                    "Terrain / Water Optimization",
-                    "Restore Original Graphics",
-                    "FPS Cap",
-                } },
-                { Category = "WEBHOOK", Items = {
-                    "Enable Outbound Webhook",
-                    "Endpoint URL",
-                    "Test Send",
-                    "Egg Stolen Notification",
-                    "Egg Hatched Notification",
-                    "Sold Pets / Eggs Notification",
-                    "Rewards Claimed Notification",
-                    "Minimum $/s Filter",
-                    "Rarity Floor Filter",
-                    "10-Minute Session Recap",
-                    "Ping: None / Here / User ID",
-                    "Webhook User ID",
-                    "Show Roblox Name + Headshot",
-                    "Export URL In Configs",
-                } },
-                { Category = "SETTINGS / CONFIG", Items = {
-                    "Phone Layout",
-                    "UI Scale 75% - 125%",
-                    "Dark / Light Theme",
-                    "Open / Close Keybind",
-                    "Flight Keybind",
-                    "Start Minimised",
-                    "Load Config",
-                    "Save Config As",
-                    "Export Settings To Clipboard",
-                    "Import Settings From Clipboard",
-                    "Reset Position & Size",
-                    "Reset Orb Position",
-                } },
-                { Category = "NEXUS INTERFACE", Items = {
-                    "About",
-                    "Feature Overview",
-                    "Credits / Support",
-                    "Not Official Disclaimer",
-                    "Compact Phone UI",
-                    "Desktop UI",
-                    "RightShift Open / Close",
-                    "Floating Orb Launcher",
-                    "Draggable Window",
-                    "Draggable Orb",
-                    "Resizable Window",
-                } },
-            },
-        },
-
         {
             Id = "TowerOfHell",
             Title = "TOWER OF HELL",
@@ -1198,8 +1010,7 @@ local SidebarButtons = {}
 --=======================================================
 -- SIDEBAR CATEGORY SCROLL / SLIDER
 --=======================================================
--- Keeps the existing category buttons exactly the same visually,
--- while adding a dedicated vertical scroll area in the library section.
+
 local SidebarCategoryScroll = Instance.new("ScrollingFrame")
 SidebarCategoryScroll.Name = "SidebarCategoryScroll"
 SidebarCategoryScroll.Position = UDim2.new(0, 12, 0, 52)
@@ -1242,7 +1053,6 @@ round(SidebarScrollThumb, 4)
 local function updateSidebarSlider()
     local windowHeight = math.max(SidebarCategoryScroll.AbsoluteWindowSize.Y, 1)
     local canvasHeight = math.max(SidebarCategoryScroll.AbsoluteCanvasSize.Y, windowHeight)
-
     local trackHeight = math.max(SidebarScrollTrack.AbsoluteSize.Y, 1)
     local maxScroll = math.max(canvasHeight - windowHeight, 0)
 
@@ -1413,6 +1223,7 @@ Search.Parent = SearchBox
 --=======================================================
 -- TELEGRAM COPY NOTIFICATION
 --=======================================================
+
 local function showTelegramNotice(label)
     local Notice = Instance.new("Frame")
     Notice.Name = "TelegramCopyNotice"
@@ -2395,7 +2206,7 @@ local function createFeatureCategory(cfg, categoryData, order)
         Item.Parent = ItemsHolder
         round(Item, 8)
 
-        local Check = createText(Item, "›", 17, cfg.Accent, Enum.Font.GothamBold, Enum.TextXAlignment.Center)
+        local Check = createText(Item, ">", 17, cfg.Accent, Enum.Font.GothamBold, Enum.TextXAlignment.Center)
         Check.Position = UDim2.new(0, 8, 0, 0)
         Check.Size = UDim2.fromOffset(20, 31)
         Check.ZIndex = 105
